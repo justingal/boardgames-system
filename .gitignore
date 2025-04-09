@@ -1,0 +1,19 @@
+# Python virtualenv
+venv/
+__pycache__/
+*.pyc
+
+# SQLite DB
+db.sqlite3
+
+# Django secrets
+.env
+
+# VS Code ir IDE failai
+.idea/
+.vscode/
+
+# Node.js stuff (jei yra frontend)
+node_modules/
+dist/
+build/
