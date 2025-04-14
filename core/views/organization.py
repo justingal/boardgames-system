@@ -37,7 +37,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
     serializer_class = OrganizationSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ['privacy', 'categories']
+    filterset_fields = ['privacy', 'categories', 'city']
     search_fields = ['name']
 
     def perform_create(self, serializer):

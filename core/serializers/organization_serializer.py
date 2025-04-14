@@ -15,13 +15,14 @@ class OrganizationSerializer(serializers.ModelSerializer):
     members = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     categories = GameCategorySerializer(many=True, read_only=True)
     is_member = serializers.SerializerMethodField()
+    city = serializers.CharField()
 
     class Meta:
         model = Organization
         fields = [
             'id', 'name', 'description', 'created_by',
-            'members', 'categories', 'games', 'privacy', 'created_at',
-            'is_member'
+            'members', 'categories',  'privacy', 'created_at',
+            'is_member', 'city'
         ]
 
     def get_is_member(self, obj):

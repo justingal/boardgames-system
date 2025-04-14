@@ -15,6 +15,15 @@ class Organization(models.Model):
         ('protected', 'Pusiau privati'),
         ('private', 'Privati'),
     ]
+
+    CITY_CHOICES = [
+        ('vilnius', 'Vilnius'),
+        ('kaunas', 'Kaunas'),
+        ('klaipeda', 'Klaipėda'),
+        ('siauliai', 'Šiauliai'),
+        ('panevezys', 'Panevėžys'),
+    ]
+
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='organizations_created')
@@ -23,6 +32,7 @@ class Organization(models.Model):
     games = models.ManyToManyField(Game, blank=True)
     privacy = models.CharField(max_length=20, choices=PRIVACY_CHOICES, default='public')
     created_at = models.DateTimeField(auto_now_add=True)
+    city = models.CharField(max_length=50, choices=CITY_CHOICES, default='vilnius')
 
 
 
