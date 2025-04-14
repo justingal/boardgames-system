@@ -30,6 +30,15 @@
         <option value="private">🚫 Privati</option>
       </select>
 
+      <select v-model="filters.city" @change="fetchOrganizations" class="border border-gray-300 rounded px-3 py-2">
+        <option value="">Visi miestai</option>
+        <option value="vilnius">Vilnius</option>
+        <option value="kaunas">Kaunas</option>
+        <option value="klaipeda">Klaipėda</option>
+        <option value="siauliai">Šiauliai</option>
+        <option value="panevezys">Panevėžys</option>
+      </select>
+
       <select v-model="filters.category" @change="fetchOrganizations" class="border border-gray-300 rounded px-3 py-2">
         <option value="">Visos grupės</option>
         <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
@@ -48,6 +57,7 @@
           <p class="text-gray-600 text-sm mb-2">{{ org.description }}</p>
           <p class="text-sm text-gray-500">Viešumas: {{ org.privacy }}</p>
           <p class="text-sm text-gray-500">Sukūrė: {{ org.created_by }}</p>
+          <p class="text-sm text-gray-500">Miestas: {{ org.city }}</p>
         </div>
 
         <div class="ml-4">
@@ -82,6 +92,7 @@ const filters = ref({
   search: '',
   privacy: '',
   category: '',
+  city: '',
   onlyMine: false
 })
 
@@ -100,6 +111,7 @@ const fetchOrganizations = async () => {
     if (filters.value.search) params.search = filters.value.search
     if (filters.value.privacy) params.privacy = filters.value.privacy
     if (filters.value.category) params.category_name = filters.value.category
+    if (filters.value.city) params.city = filters.value.city
 
     const token = localStorage.getItem('access')
 

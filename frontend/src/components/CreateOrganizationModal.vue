@@ -35,6 +35,19 @@
           </select>
         </div>
 
+        <!-- Miestas -->
+        <div class="mb-4">
+          <label class="block mb-1 text-sm font-medium">Miestas</label>
+          <select v-model="city" required class="w-full border rounded p-2">
+            <option disabled value="">-- Pasirinkite miestą --</option>
+            <option value="vilnius">Vilnius</option>
+            <option value="kaunas">Kaunas</option>
+            <option value="klaipeda">Klaipėda</option>
+            <option value="siauliai">Šiauliai</option>
+            <option value="panevezys">Panevėžys</option>
+          </select>
+        </div>
+
         <!-- Veiksmai -->
         <div class="flex justify-end space-x-2 mt-4">
           <button type="button" @click="close" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Atšaukti</button>
@@ -57,7 +70,9 @@ const emit = defineEmits(['close', 'created'])
 const name = ref('')
 const description = ref('')
 const privacy = ref('public')
-const category = ref('')
+const category = ref('Board games')
+const city = ref('vilnius')
+
 
 const categories = [
   'Board games',
@@ -74,7 +89,8 @@ const submitOrganization = async () => {
       name: name.value,
       description: description.value,
       privacy: privacy.value,
-      category: category.value
+      category: category.value,
+      city: city.value
     }
 
     await axios.post('/organizations/', payload, {
@@ -96,6 +112,7 @@ const close = () => {
   description.value = ''
   privacy.value = 'public'
   category.value = ''
+  city.value = 'vilnius'
   emit('close')
 }
 </script>
