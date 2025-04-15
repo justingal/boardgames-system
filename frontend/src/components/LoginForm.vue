@@ -23,8 +23,12 @@
       </form>
 
       <p class="text-sm text-center mt-4 text-gray-600">
-        Don't have an account?
-        <router-link to="/register" class="text-blue-600 hover:underline font-medium">Register here</router-link>
+        Neturi paskyros?
+        <router-link to="/register" class="text-blue-600 hover:underline font-medium">Registruokis čia</router-link>
+      </p>
+      <p class="text-sm text-center mt-4 text-gray-600">
+        Nori būti organizatorius?
+        <router-link to="/register" class="text-blue-600 hover:underline font-medium">Organizatoriaus registracija</router-link>
       </p>
     </div>
   </div>

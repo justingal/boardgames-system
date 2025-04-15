@@ -2,6 +2,7 @@ from rest_framework import generics
 from rest_framework.permissions import AllowAny
 from django.contrib.auth.models import User
 from core.serializers import RegisterSerializer
+from core.serializers.organizer_serializer import OrganizerRegisterSerializer
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -24,5 +25,10 @@ class CustomLoginView(APIView):
             tokens = get_tokens_for_user(user)
             return Response(tokens)
         return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+
+class OrganizerRegisterView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    permission_classes = [AllowAny]
+    serializer_class = OrganizerRegisterSerializer
 
 

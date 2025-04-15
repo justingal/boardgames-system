@@ -1,6 +1,7 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 from core.views.auth_views import CustomLoginView
+from core.views.auth_views import OrganizerRegisterView
 
 
 from core.views.organization import JoinOrganizationView, OrganizationMembersView, remove_member
@@ -34,6 +35,7 @@ urlpatterns = [
     path('organizations/<int:pk>/members/', OrganizationMembersView.as_view(), name='organization-members'),
     path('organizations/<int:org_id>/members/<int:user_id>/remove/', remove_member, name='remove-member'),
     path('token/', CustomLoginView.as_view(), name='custom-token'),
+    path('register/organizer/', OrganizerRegisterView.as_view(), name='register-organizer'),
 ]
 
 router = DefaultRouter()

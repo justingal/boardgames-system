@@ -3,6 +3,7 @@ import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import OrganizationsView from "@/views/OrganizationsView.vue"
+import OrganizerRegisterView from '@/views/OrganizerRegisterView.vue'
 
 // Galimi būsimi view
 // import ProfileView from "@/views/ProfileView.vue"
@@ -14,6 +15,7 @@ const routes = [
   { path: '/login', component: LoginView, meta: { layout: 'auth' } },
   { path: '/register', component: RegisterView, meta: { layout: 'auth' } },
   { path: '/organizations', component: OrganizationsView, meta: { layout: 'default' } },
+  { path: '/register-organizer', component: OrganizerRegisterView, meta: { layout: 'auth' } },
 
   // 404 fallback – kai niekas neatitinka
   {
