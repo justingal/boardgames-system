@@ -2,7 +2,11 @@
   <div class="max-w-5xl mx-auto px-4 py-6">
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-3xl font-bold">Organizacijos</h1>
-      <button @click="showModal = true" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+      <button
+        v-if="userRole === 'organizer'"
+        @click="showModal = true"
+        class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+      >
         + Nauja organizacija
       </button>
     </div>
@@ -82,8 +86,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import {ref, onMounted} from 'vue'
 import axios from '../api/axios'
+import { jwtDecode } from 'jwt-decode'
 import CreateOrganizationModal from '../components/CreateOrganizationModal.vue'
 
 const showModal = ref(false)
@@ -104,6 +109,13 @@ const categories = [
   'Social deduction'
 ]
 
+let userRole = null
+const token = localStorage.getItem('access')
+if (token) {
+  const decoded = jwtDecode(token)
+  userRole = decoded.role
+}
+
 const fetchOrganizations = async () => {
   try {
     const params = {}
@@ -113,21 +125,13 @@ const fetchOrganizations = async () => {
     if (filters.value.category) params.category_name = filters.value.category
     if (filters.value.city) params.city = filters.value.city
 
-    const token = localStorage.getItem('access')
-
-    const response = await axios.get('/organizations/', {
-      headers: { Authorization: `Bearer ${token}` },
-      params
-    })
+    const response = await axios.get('/organizations/', {params})
 
     let all = response.data
-
     if (filters.value.onlyMine) {
       all = all.filter(o => o.is_member)
     }
-
     all.sort((a, b) => (b.is_member === true) - (a.is_member === true))
-
     organizations.value = all
   } catch (error) {
     console.error('Nepavyko gauti organizacijų:', error)
@@ -136,12 +140,7 @@ const fetchOrganizations = async () => {
 
 const joinOrganization = async (orgId) => {
   try {
-    const token = localStorage.getItem('access')
-
-    await axios.post(`/organizations/${orgId}/join/`, {}, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-
+    await axios.post(`/organizations/${orgId}/join/`)
     alert('Prisijungei prie organizacijos!')
     fetchOrganizations()
   } catch (error) {

@@ -4,6 +4,9 @@ from django.contrib.auth.models import User
 from core.serializers import RegisterSerializer
 from core.serializers.organizer_serializer import OrganizerRegisterSerializer
 
+from rest_framework import generics, permissions
+from django.contrib.auth.models import User
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -28,7 +31,7 @@ class CustomLoginView(APIView):
 
 class OrganizerRegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
-    permission_classes = [AllowAny]
     serializer_class = OrganizerRegisterSerializer
+    permission_classes = [permissions.AllowAny]
 
 

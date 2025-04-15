@@ -19,6 +19,9 @@
         <router-link to="/register" class="bg-gray-700 text-white px-6 py-3 rounded hover:bg-gray-800 transition">
           Registruotis
         </router-link>
+        <router-link to="/register-organizer" class="bg-gray-700 text-white px-6 py-3 rounded hover:bg-gray-800 transition">
+          Registruotis organizatoriui
+        </router-link>
       </div>
     </div>
   </div>

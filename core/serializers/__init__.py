@@ -2,3 +2,4 @@ from .game_serializer import GameSerializer
 from .usergame_serializer import UserGameSerializer
 from .user_serializer import UserSerializer, RegisterSerializer
 from .organization_serializer import OrganizationSerializer, GameCategorySerializer
+from .event_serializer import EventSerializer
