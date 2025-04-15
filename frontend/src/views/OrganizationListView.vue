@@ -59,7 +59,7 @@
         <div class="flex-1">
           <h2 class="text-xl font-bold">{{ org.name }}</h2>
           <p class="text-gray-600 text-sm mb-2">{{ org.description }}</p>
-          <p class="text-sm text-gray-500">Viešumas: {{ org.privacy }}</p>
+          <p class="text-sm text-gray-500">Viešumas: {{ privacyLabels[org.privacy] }}</p>
           <p class="text-sm text-gray-500">Sukūrė: {{ org.created_by }}</p>
           <p class="text-sm text-gray-500">Miestas: {{ org.city }}</p>
         </div>
@@ -100,6 +100,12 @@ const filters = ref({
   city: '',
   onlyMine: false
 })
+
+const privacyLabels = {
+  public: '🔓 Vieša – matoma visiems',
+  protected: '🔐 Apsaugota – matoma, bet reikia leidimo jungtis',
+  private: '🚫 Privati – nematoma, tik pakviestiesiems'
+}
 
 const categories = [
   'Board games',

@@ -10,6 +10,7 @@
       <!-- Navigacija -->
       <nav class="hidden md:flex space-x-6">
         <RouterLink to="/organizations" class="hover:text-yellow-400 transition">Organizacijos</RouterLink>
+        <RouterLink to="/events" class="hover:underline">Renginiai</RouterLink>
         <RouterLink to="/collection" class="hover:text-yellow-400 transition">Kolekcija</RouterLink>
       </nav>
 
