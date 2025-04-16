@@ -9,6 +9,18 @@ class EventViewSet(viewsets.ModelViewSet):
     serializer_class = EventSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_queryset(self):
+        queryset = Event.objects.all()
+        perks = self.request.query_params.get('perks')
+
+        if perks:
+            perks_list = [p.strip() for p in perks.split(',')]
+            for perk in perks_list:
+                queryset = queryset.filter(perks__icontains=perk)
+
+        # kiti filtrai ir grąžinimas
+        return queryset
+
     def perform_create(self, serializer):
         user = self.request.user
         profile = user.profile
