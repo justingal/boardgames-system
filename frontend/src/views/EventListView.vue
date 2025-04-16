@@ -11,6 +11,50 @@
       </button>
     </div>
 
+    <div class="bg-white shadow p-4 rounded-lg mb-6 flex flex-wrap gap-4 items-center">
+      <!-- Paieška -->
+      <input
+        v-model="filters.search"
+        @input="fetchEvents"
+        placeholder="Ieškoti pagal pavadinimą..."
+        class="border border-gray-300 rounded px-3 py-2"
+      />
+
+      <!-- Stalo dydis -->
+      <select v-model="filters.table_size" @change="fetchEvents" class="border border-gray-300 rounded px-3 py-2">
+        <option value="">Visi stalai</option>
+        <option value="S">S</option>
+        <option value="M">M</option>
+        <option value="L">L</option>
+        <option value="XL">XL</option>
+      </select>
+
+      <!-- Pradžios data -->
+      <input
+        type="date"
+        v-model="filters.start_date"
+        @change="fetchEvents"
+        class="border border-gray-300 rounded px-3 py-2"
+      />
+
+      <!-- Viešumas -->
+      <select v-model="filters.visibility" @change="fetchEvents" class="border border-gray-300 rounded px-3 py-2">
+        <option value="">Visi viešumai</option>
+        <option value="public">Vieša</option>
+        <option value="protected">Apsaugota</option>
+        <option value="private">Privati</option>
+      </select>
+
+      <!-- PERK'ai -->
+      <div class="flex flex-wrap gap-2">
+        <label v-for="perk in allPerks" :key="perk" class="flex items-center space-x-1 text-sm">
+          <input type="checkbox" :value="perk" v-model="filters.perks" @change="fetchEvents" />
+          <span>{{ perk }}</span>
+        </label>
+      </div>
+    </div>
+
+
     <CreateEventModal :show="showModal" @close="showModal = false" @created="fetchEvents" />
 
     <div class="space-y-4">
@@ -66,6 +110,28 @@ if (token) {
   userRole = decoded.role
 }
 
+const filters = ref({
+  search: '',
+  table_size: '',
+  start_date: '',
+  visibility: '',
+  perks: []
+})
+
+const allPerks = [
+  'Atskira salė',
+  'Leidžiama triukšmauti',
+  'Prieiga prie virtuvėlės',
+  'Projektorius',
+  'Oro kondicionierius',
+  'Didelis stalų kiekis',
+  'Nemokamas parkingas',
+  'Galima užsakyti maistą',
+  'Uždara erdvė',
+  'Žaidimų biblioteka'
+]
+
+
 const tableSizeLabels = {
   S: 'Mažas (2 žmonės) ~ 80x80cm',
   M: 'Vidutinis (4 žmonės) ~ 120x80cm',
@@ -79,6 +145,7 @@ const privacyLabels = {
   private: '🚫 Privati – nematoma, tik pakviestiesiems'
 }
 
+
 const formatDateTime = (datetimeStr) => {
   const options = { dateStyle: 'medium', timeStyle: 'short' }
   return new Date(datetimeStr).toLocaleString('lt-LT', options)
@@ -86,14 +153,26 @@ const formatDateTime = (datetimeStr) => {
 
 const fetchEvents = async () => {
   try {
+    const params = {}
+
+    if (filters.value.search) params.search = filters.value.search
+    if (filters.value.table_size) params.table_size = filters.value.table_size
+    if (filters.value.start_date) params.start_date = filters.value.start_date
+    if (filters.value.visibility) params.visibility = filters.value.visibility
+    if (filters.value.perks.length) params.perks = filters.value.perks.join(',')
+
     const response = await axios.get('/events/', {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
+      params
     })
-    events.value = response.data
+
+    // Surūšiuoti pagal start_time
+    events.value = response.data.sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
   } catch (error) {
     console.error('Nepavyko gauti renginių:', error)
   }
 }
+
 
 onMounted(fetchEvents)
 </script>

@@ -136,7 +136,16 @@ const allPerks = [
   'Leidžiama triukšmauti',
   'Prieiga prie virtuvėlės',
   'Projektorius',
-  'Oro kondicionierius'
+  'Oro kondicionierius',
+  'Galima naudoti garsiakalbius',
+  'Lentynos žaidimams',
+  'Stalo apšvietimas',
+  'Privatus įėjimas',
+  'Šalia WC',
+  'Galimybė užrakinti stalą',
+  'Stalas pritaikytas neįgaliesiems',
+  'Parkavimas šalia',
+  'Vieta puodeliui'
 ]
 
 const fetchOrganizations = async () => {

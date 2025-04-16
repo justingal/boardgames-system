@@ -7,7 +7,7 @@
       />
     </div>
     <div class="mt-2 text-sm text-gray-600" v-if="selectedDates.length">
-      Pasirinktos dienos: {{ formattedDaysOfMonth }}
+      Pasirinktos datos: {{ selectedDates.join(', ') }}
     </div>
   </div>
 </template>
