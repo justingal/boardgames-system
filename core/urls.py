@@ -16,6 +16,7 @@ from .views import (
     OrganizationViewSet,
     GameCategoryViewSet,
 )
+from .views.organization_views import UserOrganizationsView
 
 urlpatterns = [
 
@@ -37,6 +38,8 @@ urlpatterns = [
     path('organizations/<int:org_id>/members/<int:user_id>/remove/', remove_member, name='remove-member'),
     path('token/', CustomLoginView.as_view(), name='custom-token'),
     path('register/organizer/', OrganizerRegisterView.as_view(), name='organizer-register'),
+    path('organizations/user/', UserOrganizationsView.as_view(), name='user-organizations'),
+
 ]
 
 router = DefaultRouter()

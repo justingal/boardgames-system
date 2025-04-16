@@ -22,6 +22,33 @@
           <input v-model="form.address" required class="w-full border rounded-lg px-3 py-2" />
         </div>
 
+        <!-- Organizacija -->
+        <div class="mb-4">
+          <label class="block mb-1 font-medium">Organizacija</label>
+          <select v-model="form.organization" required class="w-full border rounded-lg px-3 py-2">
+            <option disabled value="">-- Pasirinkite organizaciją --</option>
+            <option v-for="org in userOrganizations" :key="org.id" :value="org.id">
+              {{ org.name }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Pradžios ir pabaigos data + laikas -->
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block mb-1 font-medium">Pradžios data</label>
+            <input v-model="form.start_date" type="date" required class="w-full border rounded-lg px-3 py-2" />
+            <label class="block mb-1 font-medium mt-2">Laikas</label>
+            <input v-model="form.start_time" type="time" required class="w-full border rounded-lg px-3 py-2" />
+          </div>
+          <div>
+            <label class="block mb-1 font-medium">Pabaigos data</label>
+            <input v-model="form.end_date" type="date" required class="w-full border rounded-lg px-3 py-2" />
+            <label class="block mb-1 font-medium mt-2">Laikas</label>
+            <input v-model="form.end_time" type="time" required class="w-full border rounded-lg px-3 py-2" />
+          </div>
+        </div>
+
         <!-- Stalo dydis -->
         <div class="mb-4">
           <label class="block mb-1 font-medium">Stalo dydis</label>
@@ -34,16 +61,37 @@
         </div>
 
         <!-- Perk'ai -->
-        <div class="mb-4">
+        <div class="mb-6">
           <label class="block mb-1 font-medium">Papildomos galimybės (Perks)</label>
-          <div class="flex flex-wrap gap-3">
-            <label v-for="perk in allPerks" :key="perk" class="flex items-center gap-2">
-              <input type="checkbox" :value="perk" v-model="form.perksList" />
-              <span>{{ perk }}</span>
-            </label>
-          </div>
-          <div v-if="form.perksList.length" class="mt-2 text-sm text-gray-600">
-            Pažymėta: {{ form.perksList.join(', ') }}
+          <details class="bg-gray-50 border rounded-lg p-3">
+            <summary class="cursor-pointer font-medium text-gray-700">Pasirinkti galimybes</summary>
+            <div class="mt-3 flex flex-wrap gap-3">
+              <label v-for="perk in allPerks" :key="perk" class="flex items-center gap-2">
+                <input type="checkbox" :value="perk" v-model="form.perksList" />
+                <span>{{ perk }}</span>
+              </label>
+            </div>
+            <div v-if="form.perksList.length" class="mt-2 text-sm text-gray-600">
+              Pasirinkta: {{ form.perksList.join(', ') }}
+            </div>
+          </details>
+        </div>
+
+        <!-- Kartojasi checkbox su pasirinkimu kalendoriuje -->
+        <div class="mb-6">
+          <label class="inline-flex items-center space-x-2">
+            <input type="checkbox" v-model="form.is_repeating" />
+            <span>Kartojasi pasirinktomis mėnesio dienomis tuo pačiu metu:</span>
+          </label>
+
+          <div v-if="form.is_repeating" class="mt-4">
+            <p class="mb-2 text-sm text-gray-600">Pasirinkite mėnesio dienas, kuriomis norite kartoti renginį tuo pačiu metu.</p>
+            <div class="flex flex-wrap gap-2">
+              <label v-for="n in 31" :key="n" class="flex items-center gap-1 text-sm">
+                <input type="checkbox" :value="n" v-model="form.repeat_days" />
+                <span>{{ n }} d.</span>
+              </label>
+            </div>
           </div>
         </div>
 
@@ -62,7 +110,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import axios from '../api/axios'
 
 const props = defineProps({
@@ -70,12 +118,21 @@ const props = defineProps({
 })
 const emit = defineEmits(['close', 'created'])
 
+const userOrganizations = ref([])
+
 const form = ref({
   title: '',
   description: '',
   address: '',
+  organization: '',
+  start_date: '',
+  end_date: '',
+  start_time: '',
+  end_time: '',
   table_size: 'M',
-  perksList: []
+  perksList: [],
+  is_repeating: false,
+  repeat_days: []
 })
 
 const allPerks = [
@@ -86,12 +143,34 @@ const allPerks = [
   'Oro kondicionierius'
 ]
 
+const fetchOrganizations = async () => {
+  try {
+    const token = localStorage.getItem('access')
+    const response = await axios.get('/organizations/user/', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    userOrganizations.value = response.data
+  } catch (err) {
+    console.error('Nepavyko gauti organizacijų:', err)
+  }
+}
+
+onMounted(fetchOrganizations)
+
 const submit = async () => {
   try {
     const token = localStorage.getItem('access')
     const payload = {
-      ...form.value,
-      perks: form.value.perksList.join(', ')
+      title: form.value.title,
+      description: form.value.description,
+      address: form.value.address,
+      start_time: `${form.value.start_date}T${form.value.start_time}`,
+      end_time: `${form.value.end_date}T${form.value.end_time}`,
+      table_size: form.value.table_size,
+      perks: form.value.perksList.join(', '),
+      is_repeating: form.value.is_repeating,
+      repeat_days: form.value.repeat_days.join(','),
+      organization: form.value.organization
     }
 
     await axios.post('/events/', payload, {
@@ -111,8 +190,15 @@ const close = () => {
     title: '',
     description: '',
     address: '',
+    organization: '',
+    start_date: '',
+    end_date: '',
+    start_time: '',
+    end_time: '',
     table_size: 'M',
-    perksList: []
+    perksList: [],
+    is_repeating: false,
+    repeat_days: []
   }
   emit('close')
 }
