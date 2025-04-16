@@ -77,21 +77,16 @@
           </details>
         </div>
 
-        <!-- Kartojasi checkbox su pasirinkimu kalendoriuje -->
+        <!-- Kartojasi datos -->
         <div class="mb-6">
           <label class="inline-flex items-center space-x-2">
             <input type="checkbox" v-model="form.is_repeating" />
-            <span>Kartojasi pasirinktomis mėnesio dienomis tuo pačiu metu:</span>
+            <span>Renginys kartojasi pasirinktomis datomis</span>
           </label>
 
           <div v-if="form.is_repeating" class="mt-4">
-            <p class="mb-2 text-sm text-gray-600">Pasirinkite mėnesio dienas, kuriomis norite kartoti renginį tuo pačiu metu.</p>
-            <div class="flex flex-wrap gap-2">
-              <label v-for="n in 31" :key="n" class="flex items-center gap-1 text-sm">
-                <input type="checkbox" :value="n" v-model="form.repeat_days" />
-                <span>{{ n }} d.</span>
-              </label>
-            </div>
+            <p class="mb-2 text-sm text-gray-600">Pasirinkite konkrečias kalendoriaus datas, kuriomis norite kartoti renginį tuo pačiu metu:</p>
+            <RepeatDatePicker v-model="form.repeat_days" />
           </div>
         </div>
 
@@ -112,6 +107,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from '../api/axios'
+import RepeatDatePicker from '../components/RepeatDatePicker.vue'
 
 const props = defineProps({
   show: Boolean
@@ -155,7 +151,19 @@ const fetchOrganizations = async () => {
   }
 }
 
-onMounted(fetchOrganizations)
+onMounted(() => {
+  fetchOrganizations()
+  const today = new Date()
+  const yyyy = today.getFullYear()
+  const mm = String(today.getMonth() + 1).padStart(2, '0')
+  const dd = String(today.getDate()).padStart(2, '0')
+  const formattedDate = `${yyyy}-${mm}-${dd}`
+
+  form.value.start_date = formattedDate
+  form.value.end_date = formattedDate
+  form.value.start_time = '09:00'
+  form.value.end_time = '10:00'
+})
 
 const submit = async () => {
   try {
@@ -169,9 +177,10 @@ const submit = async () => {
       table_size: form.value.table_size,
       perks: form.value.perksList.join(', '),
       is_repeating: form.value.is_repeating,
-      repeat_days: form.value.repeat_days.join(','),
+      repeat_days: form.value.repeat_days.length ? form.value.repeat_days.join(',') : '',
       organization: form.value.organization
     }
+    console.log('Siunčiami duomenys:', payload);
 
     await axios.post('/events/', payload, {
       headers: { Authorization: `Bearer ${token}` }
@@ -181,7 +190,7 @@ const submit = async () => {
     close()
   } catch (err) {
     console.error('Nepavyko sukurti renginio:', err)
-    alert('Klaida kuriant renginį')
+    alert('Klaida kuriant renginį: ' + (err.response?.data?.message || err.message))
   }
 }
 
