@@ -1,4 +1,6 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from core.models import Event, Organization
 from core.serializers import EventSerializer
 from django.utils.dateparse import parse_datetime
@@ -9,16 +11,36 @@ class EventViewSet(viewsets.ModelViewSet):
     serializer_class = EventSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
     def get_queryset(self):
         queryset = Event.objects.all()
         perks = self.request.query_params.get('perks')
+        table_size = self.request.query_params.get('table_size')
+        search = self.request.query_params.get('search')
+        start_date = self.request.query_params.get('start_date')
+        visibility = self.request.query_params.get('visibility')
 
         if perks:
             perks_list = [p.strip() for p in perks.split(',')]
             for perk in perks_list:
                 queryset = queryset.filter(perks__icontains=perk)
 
-        # kiti filtrai ir grąžinimas
+        if table_size:
+            queryset = queryset.filter(table_size=table_size)
+
+        if search:
+            queryset = queryset.filter(title__icontains=search)
+
+        if start_date:
+            queryset = queryset.filter(start_time__date=start_date)
+
+        if visibility:
+            queryset = queryset.filter(visibility=visibility)
+
         return queryset
 
     def perform_create(self, serializer):
@@ -26,7 +48,6 @@ class EventViewSet(viewsets.ModelViewSet):
         profile = user.profile
         org_id = self.request.data.get("organization")
 
-        # Check if user is member or organizer of selected organization
         try:
             organization = Organization.objects.get(id=org_id)
             if organization.created_by != user and user not in organization.members.all():
@@ -36,7 +57,7 @@ class EventViewSet(viewsets.ModelViewSet):
 
         base_event = serializer.save(created_by=user, organization=organization)
 
-        # Create additional repeated events if applicable
+        # Repeat logic
         if base_event.is_repeating and base_event.repeat_days:
             repeat_days = base_event.repeat_days.split(',')
             for day_str in repeat_days:
@@ -63,3 +84,14 @@ class EventViewSet(viewsets.ModelViewSet):
                     )
                 except Exception as e:
                     print("Error creating repeated event:", e)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def join(self, request, pk=None):
+        event = self.get_object()
+        user = request.user
+
+        if event.players.filter(id=user.id).exists():
+            return Response({'detail': 'Jau esate prisijungęs prie šio renginio.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        event.players.add(user)
+        return Response({'detail': 'Prisijungta prie renginio sėkmingai.'}, status=status.HTTP_200_OK)

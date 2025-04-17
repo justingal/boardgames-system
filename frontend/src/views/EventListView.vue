@@ -66,6 +66,7 @@
         <h2 class="text-xl font-bold mb-2">{{ event.title }}</h2>
         <p class="text-gray-600 mb-2">{{ event.description }}</p>
 
+
         <div class="grid grid-cols-2 gap-4">
           <div>
             <p class="text-sm text-gray-800"><span class="font-semibold">Adresas:</span> {{ event.address }}</p>
@@ -86,6 +87,24 @@
             <p class="text-sm text-gray-800" v-if="event.perks">
               <span class="font-semibold">Papildomos galimybės:</span> {{ event.perks }}
             </p>
+
+            <!-- Prisijungimo ar perėjimo mygtukas -->
+            <div class="mt-4">
+              <button
+                v-if="event.is_participant"
+                @click="goToEvent(event.id)"
+                class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Eiti į renginį
+              </button>
+              <button
+                v-else
+                @click="joinEvent(event.id)"
+                class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                Prisijungti
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -150,6 +169,9 @@ const formatDateTime = (datetimeStr) => {
   const options = { dateStyle: 'medium', timeStyle: 'short' }
   return new Date(datetimeStr).toLocaleString('lt-LT', options)
 }
+const goToEvent = (eventId) => {
+  alert(`Eisi į renginio ID: ${eventId}. Vėliau čia bus nukreipimas į renginio puslapį.`)
+}
 
 const fetchEvents = async () => {
   try {
@@ -170,6 +192,17 @@ const fetchEvents = async () => {
     events.value = response.data.sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
   } catch (error) {
     console.error('Nepavyko gauti renginių:', error)
+  }
+}
+const joinEvent = async (eventId) => {
+  try {
+    await axios.post(`/events/${eventId}/join/`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    alert('Prisijungei prie renginio!')
+    fetchEvents()
+  } catch (error) {
+    console.error('Nepavyko prisijungti prie renginio:', error)
   }
 }
 
