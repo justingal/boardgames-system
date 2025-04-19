@@ -3,6 +3,8 @@ from rest_framework.routers import DefaultRouter
 from core.views.auth_views import CustomLoginView
 from core.views.auth_views import OrganizerRegisterView
 from core.views.event_viewset import EventViewSet
+from core.views.game_collection_viewset import GameCollectionViewSet
+from rest_framework.routers import DefaultRouter
 
 
 from core.views.organization import JoinOrganizationView, OrganizationMembersView, remove_member
@@ -16,6 +18,7 @@ from .views import (
     OrganizationViewSet,
     GameCategoryViewSet,
 )
+from .views.game_collection_csv_import import GameCollectionCSVImportView
 from .views.organization_views import UserOrganizationsView
 
 urlpatterns = [
@@ -39,6 +42,7 @@ urlpatterns = [
     path('token/', CustomLoginView.as_view(), name='custom-token'),
     path('register/organizer/', OrganizerRegisterView.as_view(), name='organizer-register'),
     path('organizations/user/', UserOrganizationsView.as_view(), name='user-organizations'),
+    path("collections/import-csv/", GameCollectionCSVImportView.as_view(), name="collection-import-csv"),
 
 ]
 
@@ -46,5 +50,5 @@ router = DefaultRouter()
 router.register(r'organizations', OrganizationViewSet, basename='organization')
 router.register(r'categories', GameCategoryViewSet, basename='category')
 router.register(r'events', EventViewSet, basename='event')
-
+router.register(r'collections', GameCollectionViewSet, basename='collections')
 urlpatterns += router.urls
