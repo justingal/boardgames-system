@@ -21,6 +21,7 @@ from .views import (
 from .views.bgg_views import ImportGameByBGGId
 from .views.game_collection_bgg_import import AddGameFromSearchView
 from .views.game_collection_csv_import import GameCollectionCSVImportView
+from .views.game_collection_delete import RemoveGameFromCollectionView
 from .views.organization_views import UserOrganizationsView
 
 urlpatterns = [
@@ -49,6 +50,7 @@ urlpatterns = [
     path('bgg/search/', BGGSearchView.as_view(), name='bgg-search'),
     path('bgg/import/', ImportGameByBGGId.as_view(), name='bgg-import'),
     path('collections/add-from-search/', AddGameFromSearchView.as_view(), name='add-from-search'),
+    path('collections/<int:game_id>/delete/', RemoveGameFromCollectionView.as_view(), name='collection-delete'),
 
 ]
 

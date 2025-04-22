@@ -4,6 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from core.models.game_collection import GameCollection
+from core.views.game_collection_csv_import import fetch_game_from_bgg
 
 class BGGSearchView(APIView):
     permission_classes = [AllowAny]
@@ -28,14 +29,27 @@ class BGGSearchView(APIView):
             title = name_el.attrib['value'] if name_el is not None else "Unknown"
             year = int(year_el.attrib['value']) if year_el is not None else None
 
+            # Gauti thumbnail iš "thing" API
+            thumbnail_url = None
+            try:
+                details_res = requests.get(f"https://boardgamegeek.com/xmlapi2/thing?id={game_id}")
+                if details_res.status_code == 200:
+                    thing_root = ET.fromstring(details_res.content)
+                    thumbnail_el = thing_root.find(".//thumbnail")
+                    if thumbnail_el is not None:
+                        thumbnail_url = thumbnail_el.text
+            except:
+                pass
+
             results.append({
                 "bgg_id": game_id,
                 "title": title,
                 "year": year,
-                "thumbnail_url": f"https://cf.geekdo-images.com/thumb/img/blank/games/{game_id}.jpg"  # optional fallback
+                "thumbnail_url": thumbnail_url
             })
 
         return Response(results)
+
 
 class ImportGameByBGGId(APIView):
     permission_classes = [IsAuthenticated]

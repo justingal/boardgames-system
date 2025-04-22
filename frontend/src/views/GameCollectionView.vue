@@ -45,9 +45,18 @@
         <li
           v-for="result in searchResults"
           :key="result.bgg_id"
-          class="border rounded p-3 bg-gray-50 flex justify-between items-center"
+          class="border rounded p-3 bg-gray-50 flex items-center gap-4"
         >
-          <span>{{ result.title }} <span v-if="result.year">({{ result.year }})</span></span>
+          <img
+            v-if="result.thumbnail_url"
+            :src="result.thumbnail_url"
+            :alt="result.title"
+            class="w-16 h-16 object-cover rounded"
+          />
+          <div class="flex-1">
+            <h3 class="text-lg font-semibold">{{ result.title }}</h3>
+            <p class="text-sm text-gray-600" v-if="result.year">Metai: {{ result.year }}</p>
+          </div>
           <button
             @click="importFromBGG(result.bgg_id)"
             class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
@@ -56,6 +65,7 @@
           </button>
         </li>
       </ul>
+
     </div>
 
     <!-- Kolekcijos atvaizdavimas -->
@@ -78,6 +88,12 @@
             Trukmė: {{ item.game.playtime_minutes }} min
           </p>
         </div>
+        <button
+          @click="deleteGame(item.game.id)"
+          class="ml-2 bg-red-600 text-white px-1 py-0.25 rounded hover:bg-red-700"
+        >
+          🗑️
+        </button>
       </div>
     </div>
   </div>
@@ -105,6 +121,8 @@ interface BGGSearchResult {
   bgg_id: number
   title: string
   year: number | null
+  thumbnail_url?: string
+
 }
 
 const collection = ref<GameCollectionItem[]>([])
@@ -179,6 +197,18 @@ const searchBGG = async () => {
   } catch (err) {
     console.error('Paieškos klaida:', err)
     searchResults.value = []
+  }
+}
+const deleteGame = async (gameId: number) => {
+  if (!confirm('Ar tikrai norite ištrinti šį žaidimą iš kolekcijos?')) return
+
+  try {
+    await axios.delete(`/collections/${gameId}/delete/`)
+    message.value = '✅ Žaidimas pašalintas.'
+    await fetchCollection()
+  } catch (err) {
+    console.error('Klaida trinant žaidimą:', err)
+    message.value = '❌ Klaida trinant žaidimą.'
   }
 }
 
