@@ -16,7 +16,6 @@ def fetch_game_from_bgg(bgg_id=None, title=None):
     if bgg_id:
         url = f"https://boardgamegeek.com/xmlapi2/thing?id={bgg_id}&type=boardgame"
     elif title:
-        # Naudojame paieškos API
         search_url = f"https://boardgamegeek.com/xmlapi2/search?query={title}&type=boardgame"
         search_response = requests.get(search_url)
         if search_response.status_code != 200:
@@ -120,7 +119,7 @@ class GameCollectionCSVImportView(APIView):
                 continue
 
             GameCollection.objects.create(user=request.user, game=game)
-            added_games.append(game.title)
+            added_games.append({"title": game.title, "thumbnail_url": game.thumbnail_url})
 
         return Response({
             "added": added_games,
@@ -170,7 +169,7 @@ class GameCollectionCSVImportView(APIView):
                 continue
 
             GameCollection.objects.create(user=request.user, game=game)
-            added_games.append(game.title)
+            added_games.append({"title": game.title, "thumbnail_url": game.thumbnail_url})
 
         return Response({
             "added": added_games,

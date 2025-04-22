@@ -6,7 +6,6 @@
     <div class="mb-6">
       <label class="block mb-2 font-medium">Įkelti CSV arba JSON failą:</label>
 
-      <!-- Paslėptas failo įvestis -->
       <input
         type="file"
         ref="fileInput"
@@ -15,7 +14,6 @@
         class="hidden"
       />
 
-      <!-- Mygtukas, kuris atidaro failų pasirinkimo langą -->
       <button
         @click="triggerFileSelect"
         class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
@@ -24,6 +22,40 @@
       </button>
 
       <p v-if="message" class="mt-2 text-sm text-gray-700">{{ message }}</p>
+    </div>
+
+    <!-- BGG paieška -->
+    <div class="mb-6">
+      <label class="block mb-2 font-medium">Ieškoti žaidimų per BGG:</label>
+      <div class="flex gap-2">
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Įveskite žaidimo pavadinimą..."
+          class="w-full border border-gray-300 rounded px-3 py-2"
+        />
+        <button
+          @click="searchBGG"
+          class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+        >
+          Ieškoti
+        </button>
+      </div>
+      <ul v-if="searchResults.length" class="mt-4 space-y-2">
+        <li
+          v-for="result in searchResults"
+          :key="result.bgg_id"
+          class="border rounded p-3 bg-gray-50 flex justify-between items-center"
+        >
+          <span>{{ result.title }} <span v-if="result.year">({{ result.year }})</span></span>
+          <button
+            @click="importFromBGG(result.bgg_id)"
+            class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+          >
+            ➕ Pridėti
+          </button>
+        </li>
+      </ul>
     </div>
 
     <!-- Kolekcijos atvaizdavimas -->
@@ -69,10 +101,18 @@ interface GameCollectionItem {
   game: Game
 }
 
+interface BGGSearchResult {
+  bgg_id: number
+  title: string
+  year: number | null
+}
+
 const collection = ref<GameCollectionItem[]>([])
 const file = ref<File | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 const message = ref('')
+const searchQuery = ref('')
+const searchResults = ref<BGGSearchResult[]>([])
 
 const fetchCollection = async () => {
   try {
@@ -125,6 +165,31 @@ const uploadFile = async () => {
   } catch (err) {
     console.error('Failo importavimo klaida:', err)
     message.value = '❌ Klaida įkeliant failą.'
+  }
+}
+
+const searchBGG = async () => {
+  if (!searchQuery.value.trim()) return
+
+  try {
+    const res = await axios.get('/bgg/search/', {
+      params: { query: searchQuery.value },
+    })
+    searchResults.value = res.data
+  } catch (err) {
+    console.error('Paieškos klaida:', err)
+    searchResults.value = []
+  }
+}
+
+const importFromBGG = async (bgg_id: number) => {
+  try {
+    const res = await axios.post('/collections/add-from-search/', { bgg_id })
+    message.value = res.data.message || 'Žaidimas pridėtas.'
+    await fetchCollection()
+  } catch (err) {
+    console.error('Importavimo klaida:', err)
+    message.value = '❌ Klaida importuojant žaidimą.'
   }
 }
 </script>

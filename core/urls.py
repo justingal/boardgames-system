@@ -18,6 +18,8 @@ from .views import (
     OrganizationViewSet,
     GameCategoryViewSet,
 )
+from .views.bgg_views import ImportGameByBGGId
+from .views.game_collection_bgg_import import AddGameFromSearchView
 from .views.game_collection_csv_import import GameCollectionCSVImportView
 from .views.organization_views import UserOrganizationsView
 
@@ -43,6 +45,10 @@ urlpatterns = [
     path('register/organizer/', OrganizerRegisterView.as_view(), name='organizer-register'),
     path('organizations/user/', UserOrganizationsView.as_view(), name='user-organizations'),
     path("collections/import-csv/", GameCollectionCSVImportView.as_view(), name="collection-import-csv"),
+    path("collections/import-bgg-id/", ImportGameByBGGId.as_view(), name="import-bgg-id"),
+    path('bgg/search/', BGGSearchView.as_view(), name='bgg-search'),
+    path('bgg/import/', ImportGameByBGGId.as_view(), name='bgg-import'),
+    path('collections/add-from-search/', AddGameFromSearchView.as_view(), name='add-from-search'),
 
 ]
 
