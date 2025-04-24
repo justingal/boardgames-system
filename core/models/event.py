@@ -31,7 +31,14 @@ class Event(models.Model):
 
     is_repeating = models.BooleanField(default=False)
     repeat_days = models.CharField(max_length=100, blank=True)  # Pvz: "Mon,Wed,Fri"
-
+    first_player_is_organizer = models.BooleanField(default=False)
+    actual_organizer = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='events_as_actual_organizer'
+    )
     games = models.ManyToManyField(Game, blank=True, related_name='events')
     players = models.ManyToManyField(User, blank=True, related_name='events_joined')
 

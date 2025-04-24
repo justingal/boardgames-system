@@ -94,4 +94,10 @@ class EventViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'Jau esate prisijungęs prie šio renginio.'}, status=status.HTTP_400_BAD_REQUEST)
 
         event.players.add(user)
+
+        # Jei reikia pirmąjį padaryti organizatoriumi:
+        if event.first_player_is_organizer and event.players.count() == 1:
+            event.actual_organizer = user
+            event.save()
+
         return Response({'detail': 'Prisijungta prie renginio sėkmingai.'}, status=status.HTTP_200_OK)

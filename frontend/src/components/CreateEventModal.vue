@@ -58,7 +58,12 @@
             <option value="L">Didelis (6-8 žmonės) ~ 180x90cm</option>
             <option value="XL">Labai didelis (8-10 žmonių) ~ 200x100cm</option>
           </select>
+          <label class="flex items-center space-x-2 mt-4">
+            <input type="checkbox" v-model="form.first_player_is_organizer" />
+            <span>Pirmas prisijungęs tampa organizatoriumi</span>
+          </label>
         </div>
+
 
         <!-- Perk'ai -->
         <div class="mb-6">
@@ -187,7 +192,8 @@ const submit = async () => {
       perks: form.value.perksList.join(', '),
       is_repeating: form.value.is_repeating,
       repeat_days: form.value.repeat_days.length ? form.value.repeat_days.join(',') : '',
-      organization: form.value.organization
+      organization: form.value.organization,
+      first_player_is_organizer: form.value.first_player_is_organizer,
     }
     console.log('Siunčiami duomenys:', payload);
 
