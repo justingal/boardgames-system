@@ -40,14 +40,19 @@ class Event(models.Model):
 
     def join_player(self, user):
         """Add player to event and handle first_player_is_organizer logic"""
-        if not self.players.filter(id=user.id).exists():
-            self.players.add(user)
-            # If this is the first player and first_player_is_organizer is True
-            if self.first_player_is_organizer and self.players.count() == 1:
-                self.organizers.add(user)
-            self.save()
-            return True
-        return False
+        # Return False if player is already in the event
+        if self.players.filter(id=user.id).exists():
+            return False
+
+        # Add the player
+        self.players.add(user)
+
+        # Check if this is the first player (player count should be 1 after adding)
+        # and first_player_is_organizer is True
+        if self.first_player_is_organizer and self.players.count() == 1:
+            self.organizers.add(user)
+
+        return True
 
     def __str__(self):
         return f"{self.title} ({self.organization.name})"

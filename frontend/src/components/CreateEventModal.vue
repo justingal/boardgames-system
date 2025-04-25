@@ -193,8 +193,9 @@ const submit = async () => {
       is_repeating: form.value.is_repeating,
       repeat_days: form.value.repeat_days.length ? form.value.repeat_days.join(',') : '',
       organization: form.value.organization,
-      first_player_is_organizer: form.value.first_player_is_organizer,
+      first_player_is_organizer: form.value.first_player_is_organizer ?? true, // 🟢 ŠITAS SVARBIAUSIAS!
     }
+
     console.log('Siunčiami duomenys:', payload);
 
     await axios.post('/events/', payload, {

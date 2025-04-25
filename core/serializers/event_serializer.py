@@ -35,12 +35,12 @@ class EventSerializer(serializers.ModelSerializer):
         return False
 
     def create(self, validated_data):
-        # Handle creation with proper organizer assignment
         games = validated_data.pop('games', [])
         event = Event.objects.create(**validated_data)
 
-        # Add the creator as an organizer by default
-        event.organizers.add(event.created_by)
+        # Add the creator as an organizer only if first_player_is_organizer is False
+        if not validated_data.get('first_player_is_organizer', False):
+            event.organizers.add(event.created_by)
 
         # Add games
         if games:

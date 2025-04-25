@@ -45,7 +45,6 @@ class EventViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         user = self.request.user
-        profile = user.profile
         org_id = self.request.data.get("organization")
 
         try:
@@ -57,7 +56,14 @@ class EventViewSet(viewsets.ModelViewSet):
 
         base_event = serializer.save(created_by=user, organization=organization)
 
-        # Repeat logic
+        # ✅ Automatiškai pridedame kūrėją kaip dalyvį, jei first_player_is_organizer == False
+        if not base_event.first_player_is_organizer:
+            base_event.players.add(user)
+            if not base_event.actual_organizer:
+                base_event.actual_organizer = user
+            base_event.save()
+
+        # Repeat logic (nekeičiamas)
         if base_event.is_repeating and base_event.repeat_days:
             repeat_days = base_event.repeat_days.split(',')
             for day_str in repeat_days:
@@ -90,14 +96,11 @@ class EventViewSet(viewsets.ModelViewSet):
         event = self.get_object()
         user = request.user
 
-        if event.players.filter(id=user.id).exists():
+        # Naudojame join_player metodą iš Event modelio,
+        # kuris apdoroja ir first_player_is_organizer logiką
+        success = event.join_player(user)
+
+        if success:
+            return Response({'detail': 'Prisijungta prie renginio sėkmingai.'}, status=status.HTTP_200_OK)
+        else:
             return Response({'detail': 'Jau esate prisijungęs prie šio renginio.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        event.players.add(user)
-
-        # Jei reikia pirmąjį padaryti organizatoriumi:
-        if event.first_player_is_organizer and event.players.count() == 1:
-            event.actual_organizer = user
-            event.save()
-
-        return Response({'detail': 'Prisijungta prie renginio sėkmingai.'}, status=status.HTTP_200_OK)
