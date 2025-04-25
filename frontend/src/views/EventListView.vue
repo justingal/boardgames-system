@@ -118,6 +118,7 @@ import { ref, onMounted } from 'vue'
 import axios from '../api/axios'
 import { jwtDecode } from 'jwt-decode'
 import CreateEventModal from '../components/CreateEventModal.vue'
+import router from "@/router/index.js";
 
 const showModal = ref(false)
 const events = ref([])
@@ -171,9 +172,8 @@ const formatDateTime = (datetimeStr) => {
   return new Date(datetimeStr).toLocaleString('lt-LT', options)
 }
 const goToEvent = (eventId) => {
-  alert(`Eisi į renginio ID: ${eventId}. Vėliau čia bus nukreipimas į renginio puslapį.`)
+  router.push(`/events/${eventId}`)
 }
-
 const fetchEvents = async () => {
   try {
     const params = {}

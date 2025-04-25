@@ -6,6 +6,7 @@ import OrganizationsView from "@/views/OrganizationsView.vue"
 import OrganizerRegisterView from '@/views/OrganizerRegisterView.vue'
 import EventListView from "@/views/EventListView.vue";
 import GameCollectionView from "@/views/GameCollectionView.vue";
+import EventDetailView from "@/views/EventDetailView.vue";
 
 // Galimi būsimi view
 // import ProfileView from "@/views/ProfileView.vue"
@@ -19,9 +20,8 @@ const routes = [
   { path: '/organizations', component: OrganizationsView, meta: { layout: 'default' } },
   { path: '/register-organizer', component: OrganizerRegisterView, meta: { layout: 'auth' } },
   { path: '/events', name: 'events', component: EventListView },
+  { path: '/events/:id', name: 'event-detail', component: EventDetailView },
   { path: '/collection', name: 'Kolekcija', component: GameCollectionView },
-
-  // 404 fallback – kai niekas neatitinka
   {
     path: '/:pathMatch(.*)*',
     redirect: '/'

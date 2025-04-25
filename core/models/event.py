@@ -32,17 +32,22 @@ class Event(models.Model):
     is_repeating = models.BooleanField(default=False)
     repeat_days = models.CharField(max_length=100, blank=True)  # Pvz: "Mon,Wed,Fri"
     first_player_is_organizer = models.BooleanField(default=False)
-    actual_organizer = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='events_as_actual_organizer'
-    )
+    organizers = models.ManyToManyField(User, related_name='organized_events', blank=True)
     games = models.ManyToManyField(Game, blank=True, related_name='events')
     players = models.ManyToManyField(User, blank=True, related_name='events_joined')
 
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def join_player(self, user):
+        """Add player to event and handle first_player_is_organizer logic"""
+        if not self.players.filter(id=user.id).exists():
+            self.players.add(user)
+            # If this is the first player and first_player_is_organizer is True
+            if self.first_player_is_organizer and self.players.count() == 1:
+                self.organizers.add(user)
+            self.save()
+            return True
+        return False
 
     def __str__(self):
         return f"{self.title} ({self.organization.name})"
