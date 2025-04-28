@@ -19,7 +19,9 @@ from .views import (
     GameCategoryViewSet,
 )
 from .views.bgg_views import ImportGameByBGGId
+from .views.event_game_import_view import EventGameImportView, EventAvailableGameListView
 from .views.event_manage import MakeOrganizerView, KickPlayerView, RemoveOrganizerView
+from .views.event_vote_view import EventGameVoteView, EventGameVoteResultsView
 from .views.game_collection_bgg_import import AddGameFromSearchView
 from .views.game_collection_csv_import import GameCollectionCSVImportView
 from .views.game_collection_delete import RemoveGameFromCollectionView
@@ -56,7 +58,10 @@ urlpatterns = [
     path('events/<int:pk>/make-organizer/', MakeOrganizerView.as_view(), name='make-organizer'),
     path('events/<int:pk>/kick-player/', KickPlayerView.as_view(), name='kick-player'),
     path('events/<int:pk>/remove-organizer/', RemoveOrganizerView.as_view(), name='remove-organizer'),
-
+    path('events/<int:pk>/import-games/', EventGameImportView.as_view(), name='import-games'),
+    path('events/<int:pk>/available-games/', EventAvailableGameListView.as_view(), name='available-games'),
+    path('events/<int:pk>/vote/', EventGameVoteView.as_view(), name='event-vote'),
+    path('events/<int:pk>/vote-results/', EventGameVoteResultsView.as_view(), name='event-vote-results'),
     path('users/me/', CurrentUserView.as_view(), name='current-user'),
 
 ]

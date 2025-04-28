@@ -35,6 +35,7 @@
         </div>
       </div>
 
+
       <div v-if="message" class="mb-4 p-3 rounded" :class="messageClass">
         {{ message }}
       </div>
@@ -86,14 +87,39 @@
           </tr>
           </tbody>
         </table>
+        <button
+          @click="showImportModal = true"
+          class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 mt-4 ml-2"
+        >
+          📥 Importuoti žaidimus į renginį
+        </button>
+        <button
+          @click="showVoteModal = true"
+          class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 mt-4"
+        >
+          🗳️ Balsuoti už žaidimus
+        </button>
       </div>
       <p v-else>Nėra prisijungusių dalyvių.</p>
     </div>
+
+
 
     <!-- Loaderis kol event dar neatejo -->
     <div v-else>
       <p>🔄 Kraunama renginio informacija...</p>
     </div>
+    <!-- ImportGamesModal (PRIDĖTA ČIA!) -->
+    <ImportGamesModal
+      :visible="showImportModal"
+      @close="showImportModal = false"
+      @imported="fetchEvent"
+    />
+    <EventVoteModal
+      :visible="showVoteModal"
+      @close="showVoteModal = false"
+      @voted="fetchEvent"
+    />
   </div>
   <EditEventModal
     :visible="showEditModal"
@@ -108,6 +134,11 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from '@/api/axios'
 import EditEventModal from '@/components/EditEventModal.vue'
+import ImportGamesModal from '@/components/ImportGamesModal.vue'
+import EventVoteModal from "@/components/EventVoteModal.vue";
+
+const showVoteModal = ref(false)
+const showImportModal = ref(false)
 
 
 const route = useRoute()
