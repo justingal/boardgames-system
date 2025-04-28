@@ -34,7 +34,7 @@ class Event(models.Model):
     first_player_is_organizer = models.BooleanField(default=False)
     organizers = models.ManyToManyField(User, related_name='organized_events', blank=True)
     games = models.ManyToManyField(Game, blank=True, related_name='events')
-    players = models.ManyToManyField(User, blank=True, related_name='events_joined')
+    players = models.ManyToManyField(User, related_name='events_joined')
 
     created_at = models.DateTimeField(auto_now_add=True)
 

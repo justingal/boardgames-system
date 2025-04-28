@@ -4,12 +4,17 @@
 
     <form @submit.prevent="submit">
       <!-- Vartotojo info -->
-      <input v-model="form.username" placeholder="Vardas" required
+      <input v-model="form.username" placeholder="Vartotojo vardas" required
              class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3" />
       <input v-model="form.email" placeholder="El. paštas" required
              class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3" />
       <input v-model="form.password" type="password" placeholder="Slaptažodis" required
              class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3" />
+      <input v-model="form.first_name" placeholder="Vardas" required
+             class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3" />
+      <input v-model="form.last_name" placeholder="Pavardė" required
+             class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3" />
+
 
       <h2 class="text-lg font-semibold mb-2 mt-6 text-center text-gray-700">🎯 Kuriama organizacija</h2>
 
@@ -77,8 +82,13 @@ const submit = async () => {
     alert('Registracija sėkminga! Dabar prisijunkite.')
     router.push('/login')
   } catch (error) {
-    console.error('Registracijos klaida:', error)
-    alert('Nepavyko užsiregistruoti.')
+    if (error.response) {
+      console.error('Backend klaida:', error.response.data)
+      alert('Registracijos klaida: ' + JSON.stringify(error.response.data))
+    } else {
+      console.error('Nežinoma klaida:', error)
+      alert('Įvyko klaida registruojantis.')
+    }
   }
 }
 </script>

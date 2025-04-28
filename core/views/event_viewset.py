@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from core.models import Event, Organization
 from core.serializers import EventSerializer
 from django.utils.dateparse import parse_datetime
+from rest_framework.exceptions import PermissionDenied
 from datetime import timedelta
 
 class EventViewSet(viewsets.ModelViewSet):
@@ -104,3 +105,24 @@ class EventViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'Prisijungta prie renginio sėkmingai.'}, status=status.HTTP_200_OK)
         else:
             return Response({'detail': 'Jau esate prisijungęs prie šio renginio.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        event = self.get_object()
+        user = request.user
+
+        # Tik kūrėjas arba organizatoriai gali redaguoti
+        if event.created_by != user and not event.organizers.filter(id=user.id).exists():
+            raise PermissionDenied("Tik renginio kūrėjas arba organizatoriai gali redaguoti renginį.")
+
+        # Draudžiam keisti players ir organizers laukus, jeigu jie būtų pateikti:
+        mutable_data = request.data.copy()
+        mutable_data.pop('players', None)
+        mutable_data.pop('organizers', None)
+
+        # Naudojam serializerį su jau išvalytais duomenimis
+        partial = kwargs.pop('partial', False)
+        serializer = self.get_serializer(event, data=mutable_data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        return Response(serializer.data)

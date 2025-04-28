@@ -2,8 +2,16 @@
   <div class="min-h-screen bg-gray-100 flex items-start justify-center pt-12">
     <div v-if="event" class="bg-white rounded-lg shadow-md p-6 w-full max-w-4xl">
       <h1 class="text-2xl font-bold mb-4">{{ event.title }}</h1>
+      <button
+        v-if="userIsOrganizer"
+        @click="showEditModal = true"
+        class="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 mt-4"
+      >
+        ✏️ Redaguoti renginį
+      </button>
 
       <div class="mb-6">
+
         <p><span class="font-semibold">Aprašymas:</span> {{ event.description }}</p>
         <p><span class="font-semibold">Adresas:</span> {{ event.address }}</p>
         <p><span class="font-semibold">Stalo dydis:</span> {{ tableSizeLabels[event.table_size] }}</p>
@@ -87,12 +95,20 @@
       <p>🔄 Kraunama renginio informacija...</p>
     </div>
   </div>
+  <EditEventModal
+    :visible="showEditModal"
+    :eventData="event"
+    @close="showEditModal = false"
+    @updated="handleEventUpdated"
+  />
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from '@/api/axios'
+import EditEventModal from '@/components/EditEventModal.vue'
+
 
 const route = useRoute()
 const event = ref<any>(null)
@@ -219,6 +235,16 @@ const kickPlayer = async (userId: number) => {
     message.value = '❌ Klaida metant žaidėją lauk.'
     messageClass.value = 'bg-red-100 text-red-800'
   }
+}
+
+const showEditModal = ref(false)
+const openEditModal = () => {
+  showEditModal.value = true
+}
+const handleEventUpdated = async () => {
+  await fetchEvent()               // Tavo jau esama funkcija, kuri atnaujina event duomenis
+  message.value = '✅ Renginys atnaujintas!'
+  messageClass.value = 'bg-green-100 text-green-800'
 }
 
 onMounted(() => {
