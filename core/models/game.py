@@ -15,6 +15,7 @@ class Game(models.Model):
     categories = ArrayField(models.CharField(max_length=100), default=list, blank=True)
     mechanics = ArrayField(models.CharField(max_length=100), default=list, blank=True)
     language_dependence = models.CharField(max_length=100, null=True, blank=True)
+    best_player_count = models.CharField(max_length=50, null=True, blank=True)
 
     def __str__(self):
         return self.title

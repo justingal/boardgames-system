@@ -82,6 +82,23 @@ def fetch_game_from_bgg(bgg_id=None, title=None):
                 most_voted = max(options, key=lambda x: int(x.attrib.get('numvotes', 0)))
                 language_dependence = most_voted.attrib.get('value')
 
+        best_player_count = None
+        poll = item.find("poll[@name='suggested_numplayers']")
+        if poll is not None:
+            options = poll.findall("results")
+            best_votes = []
+
+            for opt in options:
+                player_num = opt.attrib.get("numplayers")
+                for result in opt.findall("result"):
+                    if result.attrib.get("value") == "Best":
+                        numvotes = int(result.attrib.get("numvotes", 0))
+                        best_votes.append((player_num, numvotes))
+
+            if best_votes:
+                best_votes.sort(key=lambda x: -x[1])
+                best_player_count = best_votes[0][0]
+
         # get_or_create to avoid duplicate error
         game, created = Game.objects.get_or_create(
             bgg_id=bgg_id,
@@ -98,6 +115,7 @@ def fetch_game_from_bgg(bgg_id=None, title=None):
                 'categories': categories,
                 'mechanics': mechanics,
                 'language_dependence': language_dependence,
+                'best_player_count': best_player_count,
             }
         )
         game, created = Game.objects.get_or_create(bgg_id=bgg_id)

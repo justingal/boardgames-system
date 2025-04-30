@@ -153,18 +153,22 @@ const filteredGames = computed(() =>
           (!filterRatingMin.value || g.average_rating >= filterRatingMin.value) &&
           (!filterRatingMax.value || g.average_rating <= filterRatingMax.value)
 
-      const bestPlayersMatch =
-          !filterBestPlayers.value || g.best_player_count == String(filterBestPlayers.value)
+      const bestPlayersValue = filterBestPlayers.value
+      const bestPlayersMatch = !bestPlayersValue || (
+          g.best_player_count === String(bestPlayersValue) ||
+          (g.min_players <= bestPlayersValue && g.max_players >= bestPlayersValue)
+      )
 
-      return titleMatch && mechanicMatch && categoryMatch && playtimeMatch && complexityMatch && ratingMatch && (bestPlayersMatch || !filterBestPlayers.value)
+      return titleMatch && mechanicMatch && categoryMatch && playtimeMatch && complexityMatch && ratingMatch && bestPlayersMatch
     })
 )
 
-// Prioritizuoti pagal best_player_count
 const sortedFilteredGames = computed(() => {
-  if (!filterBestPlayers.value) return filteredGames.value
-  const best = filteredGames.value.filter(g => g.game.best_player_count == String(filterBestPlayers.value))
-  const rest = filteredGames.value.filter(g => g.game.best_player_count != String(filterBestPlayers.value))
+  const bestPlayersValue = filterBestPlayers.value
+  if (!bestPlayersValue) return filteredGames.value
+
+  const best = filteredGames.value.filter(g => g.game.best_player_count === String(bestPlayersValue))
+  const rest = filteredGames.value.filter(g => g.game.best_player_count !== String(bestPlayersValue))
   return [...best, ...rest]
 })
 
