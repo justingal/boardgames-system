@@ -18,8 +18,9 @@
                 {{ element.game.min_players }}–{{ element.game.max_players }} žaidėjai • {{ element.game.playtime_minutes }} min
               </p>
             </div>
-            <span class="text-gray-500 text-sm">#{ { index + 1 } }</span>
-          </div>
+            <div class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs flex items-center justify-center">
+              {{ index + 1 }}
+            </div>          </div>
         </template>
       </draggable>
 
@@ -74,6 +75,11 @@ const submitVotes = async () => {
     alert('❌ Nepavyko išsaugoti balsavimo.')
   }
 }
-
+const refresh = async () => {
+  await fetchAvailableGames()
+}
+defineExpose({
+  refresh
+})
 onMounted(fetchAvailableGames)
 </script>
