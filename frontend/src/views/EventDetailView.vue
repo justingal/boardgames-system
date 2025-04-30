@@ -87,6 +87,24 @@
           </tr>
           </tbody>
         </table>
+        <h2 class="text-lg font-semibold mt-8 mb-4">🎲 Žaidimai:</h2>
+        <div v-if="visibleGames.length > 0" class="space-y-2">
+          <div v-for="(item, index) in visibleGames" :key="item.game.id" class="flex items-center gap-3 border rounded px-3 py-2 bg-gray-50">
+            <div class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs flex items-center justify-center">
+              {{ index + 1 }}
+            </div>
+            <img :src="item.game.thumbnail_url" class="w-12 h-12 object-cover rounded" />
+            <div class="text-sm">
+              <p class="font-semibold">{{ item.game.title }}</p>
+              <p class="text-gray-600">{{ item.game.min_players }}–{{ item.game.max_players }} žaidėjai • {{ item.game.playtime_minutes }} min</p>
+            </div>
+          </div>
+          <div v-if="visibleGames.length < allGames.length" class="text-center mt-4">
+            <button @click="showMoreGames" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">
+              Rodyti daugiau
+            </button>
+          </div>
+        </div>
         <button
           @click="showImportModal = true"
           class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 mt-4 ml-2"
@@ -102,6 +120,8 @@
       </div>
       <p v-else>Nėra prisijungusių dalyvių.</p>
     </div>
+
+
 
 
 
@@ -277,9 +297,28 @@ const handleEventUpdated = async () => {
   message.value = '✅ Renginys atnaujintas!'
   messageClass.value = 'bg-green-100 text-green-800'
 }
+const allGames = ref<any[]>([])
+const visibleGames = ref<any[]>([])
+const gamesToShow = ref(10)
+
+const fetchGames = async () => {
+  try {
+    const res = await axios.get(`/events/${route.params.id}/available-games/`)
+    allGames.value = res.data
+    visibleGames.value = allGames.value.slice(0, gamesToShow.value)
+  } catch (err) {
+    console.error('Nepavyko gauti žaidimų:', err)
+  }
+}
+
+const showMoreGames = () => {
+  gamesToShow.value += 10
+  visibleGames.value = allGames.value.slice(0, gamesToShow.value)
+}
 
 onMounted(() => {
   fetchUser()
   fetchEvent()
+  fetchGames()
 })
 </script>
