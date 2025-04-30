@@ -13,8 +13,12 @@ from core.models.game import Game
 from core.models.game_collection import GameCollection
 
 def fetch_game_from_bgg(bgg_id=None, title=None):
+    import requests
+    import xml.etree.ElementTree as ET
+    from core.models import Game
+
     if bgg_id:
-        url = f"https://boardgamegeek.com/xmlapi2/thing?id={bgg_id}&type=boardgame"
+        url = f"https://boardgamegeek.com/xmlapi2/thing?id={bgg_id}&stats=1"
     elif title:
         search_url = f"https://boardgamegeek.com/xmlapi2/search?query={title}&type=boardgame"
         search_response = requests.get(search_url)
@@ -49,18 +53,55 @@ def fetch_game_from_bgg(bgg_id=None, title=None):
         min_players = int(item.find("minplayers").attrib.get("value", 0))
         max_players = int(item.find("maxplayers").attrib.get("value", 0))
         playtime = int(item.find("playingtime").attrib.get("value", 0))
+        recommended_age = int(item.find("minage").attrib.get("value", 0))
 
         thumbnail_elem = item.find("thumbnail")
         thumbnail_url = thumbnail_elem.text if thumbnail_elem is not None else ""
 
-        return Game.objects.create(
+        stats = item.find("statistics/ratings")
+        average_rating = float(stats.find("average").attrib.get("value", 0)) if stats is not None else None
+        complexity = float(stats.find("averageweight").attrib.get("value", 0)) if stats is not None else None
+        categories = [link.attrib['value'] for link in item.findall("link[@type='boardgamecategory']")]
+        mechanics = [link.attrib['value'] for link in item.findall("link[@type='boardgamemechanic']")]
+
+        # Rank (type='subtype', name='boardgame')
+        overall_rank = None
+        ranks_elem = stats.find("ranks") if stats is not None else None
+        if ranks_elem is not None:
+            for rank in ranks_elem.findall("rank"):
+                if rank.attrib.get("type") == "subtype" and rank.attrib.get("name") == "boardgame":
+                    val = rank.attrib.get("value")
+                    if val and val != "Not Ranked":
+                        overall_rank = int(val)
+
+        language_dependence = None
+        poll = item.find("poll[@name='language_dependence']")
+        if poll is not None:
+            options = poll.findall("results/result")
+            if options:
+                most_voted = max(options, key=lambda x: int(x.attrib.get('numvotes', 0)))
+                language_dependence = most_voted.attrib.get('value')
+
+        # get_or_create to avoid duplicate error
+        game, created = Game.objects.get_or_create(
             bgg_id=bgg_id,
-            title=title,
-            min_players=min_players,
-            max_players=max_players,
-            playtime_minutes=playtime,
-            thumbnail_url=thumbnail_url
+            defaults={
+                'title': title,
+                'min_players': min_players,
+                'max_players': max_players,
+                'playtime_minutes': playtime,
+                'thumbnail_url': thumbnail_url,
+                'average_rating': average_rating,
+                'complexity': complexity,
+                'overall_rank': overall_rank,
+                'recommended_age': recommended_age,
+                'categories': categories,
+                'mechanics': mechanics,
+                'language_dependence': language_dependence,
+            }
         )
+
+        return game
 
     except Exception as e:
         print(f"Klaida parsisiunčiant iš BGG: {e}")
