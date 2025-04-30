@@ -38,13 +38,20 @@
           <option value="">🎭 Visos temos</option>
           <option v-for="c in allCategories" :key="c" :value="c">{{ c }}</option>
         </select>
+
+        <select v-model="filterLanguage" class="border rounded px-2 py-1 text-sm">
+          <option value="">🗣️ Visi kalbos lygiai</option>
+          <option v-for="(label, key) in languageOptions" :key="key" :value="key">
+            {{ label }}
+          </option>
+        </select>
       </div>
 
       <div v-if="sortedFilteredGames.length === 0" class="text-center text-gray-600">
         ❌ Pagal pasirinktus filtrus žaidimų nerasta!
       </div>
 
-      <!-- PATAISYTA DRAGGABLE DALIS -->
+      <!-- DRAGGABLE DALIS -->
       <draggable  v-model="displayGames"
                   item-key="id"
                   handle=".drag-handle"
@@ -65,7 +72,7 @@
               <p class="text-sm text-gray-600">
                 ⭐ Reitingas: {{ element.game.average_rating?.toFixed(2) ?? '–' }} •
                 🧠 Kompleksiškumas: {{ element.game.complexity?.toFixed(2) ?? '–' }} •
-                🗣️ Kalbos priklausomybė: {{ element.game.language_dependence ?? '–' }}
+                🗣️ Kalbos svarba: {{ localizeLanguageDependence(element.game.language_dependence) }}
               </p>
               <p class="text-sm text-gray-600">
                 🎭 Temos: {{ element.game.categories?.join(', ') || '–' }}<br />
@@ -110,6 +117,7 @@ const displayGames = ref<any[]>([])
 const filterQuery = ref('')
 const filterMechanic = ref('')
 const filterCategory = ref('')
+const filterLanguage = ref("") // Aprašome čia prieš naudojimą
 const filterPlaytimeMin = ref<number | null>(null)
 const filterPlaytimeMax = ref<number | null>(null)
 const filterComplexityMin = ref<number | null>(null)
@@ -120,6 +128,28 @@ const filterBestPlayers = ref<number | null>(null)
 
 const allMechanics = ref<string[]>([])
 const allCategories = ref<string[]>([])
+
+// Kalbos teksto vertimai
+const languageOptions: Record<string, string> = {
+  "No necessary in-game text": "Kalbos nereikia",
+  "Some necessary text - easily memorized or small crib sheet": "Mažai teksto – lengva įsiminti",
+  "Moderate in-game text": "Vidutinis kalbos poreikis",
+  "Extensive use of text - massive conversion needed to be playable": "Daug teksto – sunku be vertimo",
+  "Unplayable in another language": "Neįmanoma žaisti be kalbos žinių",
+}
+
+const languageDependenceMap: Record<string, string> = {
+  "No necessary in-game text": "Kalbos nereikia",
+  "Some necessary text - easily memorized or small crib sheet": "Mažai teksto – lengva įsiminti",
+  "Moderate in-game text": "Vidutinis kalbos poreikis",
+  "Extensive use of text - massive conversion needed to be playable": "Daug teksto – žaisti sudėtinga be vertimo",
+  "Unplayable in another language": "Neįmanoma žaisti be kalbos žinių",
+}
+
+const localizeLanguageDependence = (value: string | null) => {
+  if (!value) return "–"
+  return languageDependenceMap[value] || value
+}
 
 const fetchAvailableGames = async () => {
   try {
@@ -160,6 +190,7 @@ const filteredGames = computed(() =>
       const ratingMatch =
           (!filterRatingMin.value || g.average_rating >= filterRatingMin.value) &&
           (!filterRatingMax.value || g.average_rating <= filterRatingMax.value)
+      const languageMatch = !filterLanguage.value || g.language_dependence === filterLanguage.value
 
       const bestPlayersValue = filterBestPlayers.value
       const bestPlayersMatch = !bestPlayersValue || (
@@ -167,7 +198,8 @@ const filteredGames = computed(() =>
           (g.min_players <= bestPlayersValue && g.max_players >= bestPlayersValue)
       )
 
-      return titleMatch && mechanicMatch && categoryMatch && playtimeMatch && complexityMatch && ratingMatch && bestPlayersMatch
+      return titleMatch && mechanicMatch && categoryMatch && playtimeMatch &&
+          complexityMatch && ratingMatch && bestPlayersMatch && languageMatch
     })
 )
 
@@ -192,7 +224,7 @@ const updateDisplayGames = () => {
 
 // Stebime filtrus ir atnaujiname rodomų žaidimų sąrašą
 watch([
-  filterQuery, filterMechanic, filterCategory,
+  filterQuery, filterMechanic, filterCategory, filterLanguage, // Pridėtas filterLanguage!
   filterPlaytimeMin, filterPlaytimeMax,
   filterComplexityMin, filterComplexityMax,
   filterRatingMin, filterRatingMax,
