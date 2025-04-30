@@ -50,7 +50,7 @@ const selectAll = ref(false)
 
 const fetchUserCollectionGames = async () => {
   try {
-    const res = await axios.get('/collections/') // ⬅️ ČIA TAVO ASMENINĖ KOLEKCIJA
+    const res = await axios.get(`/events/${route.params.id}/importable-games/`) // ⬅️ ČIA TAVO ASMENINĖ KOLEKCIJA
     games.value = res.data
   } catch (err) {
     console.error('Klaida gaunant žaidimų kolekciją:', err)

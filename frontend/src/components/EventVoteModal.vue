@@ -44,7 +44,11 @@
         ❌ Pagal pasirinktus filtrus žaidimų nerasta!
       </div>
 
-      <draggable v-model="games" item-key="game.id" :list="sortedFilteredGames" handle=".drag-handle" class="space-y-2">
+      <!-- PATAISYTA DRAGGABLE DALIS -->
+      <draggable  v-model="displayGames"
+                  item-key="id"
+                  handle=".drag-handle"
+                  class="space-y-2">
         <template #item="{ element, index }">
           <div class="flex items-start gap-3 border rounded px-3 py-2 bg-gray-50">
             <span class="drag-handle cursor-move mt-2">☰</span>
@@ -79,7 +83,7 @@
         <button @click="$emit('close')" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Atšaukti</button>
         <button
             @click="submitVotes"
-            :disabled="sortedFilteredGames.length === 0"
+            :disabled="displayGames.length === 0"
             class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
           🗳️ Balsuoti
@@ -90,7 +94,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import draggable from 'vuedraggable'
 import axios from '@/api/axios'
 import { useRoute } from 'vue-router'
@@ -100,6 +104,7 @@ const emit = defineEmits(['close', 'voted'])
 const route = useRoute()
 
 const games = ref<any[]>([])
+const displayGames = ref<any[]>([])
 
 // Filtrai
 const filterQuery = ref('')
@@ -131,6 +136,9 @@ const fetchAvailableGames = async () => {
 
     allMechanics.value = Array.from(mechanicsSet).sort()
     allCategories.value = Array.from(categoriesSet).sort()
+
+    // Pradinė duomenų užpildymas
+    updateDisplayGames()
   } catch (err) {
     console.error('Klaida gaunant žaidimų sąrašą:', err)
   }
@@ -172,8 +180,27 @@ const sortedFilteredGames = computed(() => {
   return [...best, ...rest]
 })
 
+// Atnaujinti rodomų žaidimų sąrašą kai pasikeičia filtrai
+const updateDisplayGames = () => {
+  // Sukuriame duomenų kopiją su unikaliais ID, kad draggable komponentas
+  // galėtų teisingai identifikuoti elementus
+  displayGames.value = sortedFilteredGames.value.map((game, index) => ({
+    ...game,
+    id: game.game.id // naudojame game.id kaip unikalų identifikatorių
+  }))
+}
+
+// Stebime filtrus ir atnaujiname rodomų žaidimų sąrašą
+watch([
+  filterQuery, filterMechanic, filterCategory,
+  filterPlaytimeMin, filterPlaytimeMax,
+  filterComplexityMin, filterComplexityMax,
+  filterRatingMin, filterRatingMax,
+  filterBestPlayers
+], updateDisplayGames)
+
 const submitVotes = async () => {
-  const votes = sortedFilteredGames.value.map((item, index) => ({
+  const votes = displayGames.value.map((item, index) => ({
     game_id: item.game.id,
     rank: index + 1,
   }))
