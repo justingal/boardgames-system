@@ -214,7 +214,7 @@ const deleteGame = async (gameId: number) => {
 
 const importFromBGG = async (bgg_id: number) => {
   try {
-    const res = await axios.post('/collections/add-from-search/', { bgg_id })
+    const res = await axios.post('/collections/add-from-search/', {  bgg_id })
     message.value = res.data.message || 'Žaidimas pridėtas.'
     await fetchCollection()
   } catch (err) {

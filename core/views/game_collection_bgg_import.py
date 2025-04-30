@@ -11,6 +11,8 @@ class AddGameFromSearchView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        print("Request data:", request.data)  # <-- pridėk
+
         bgg_id = request.data.get("bgg_id")
         if not bgg_id:
             return Response({"error": "bgg_id is required"}, status=400)
