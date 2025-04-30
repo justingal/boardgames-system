@@ -1,30 +1,50 @@
 <template>
   <div v-if="visible" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-    <div class="bg-white p-6 rounded-lg shadow-xl max-w-4xl w-full relative max-h-[90vh] overflow-y-auto">
+    <div class="bg-white p-6 rounded-lg shadow-xl max-w-6xl w-full relative max-h-[90vh] overflow-y-auto">
       <h2 class="text-xl font-bold mb-4">🗳️ Sudėliok savo norimų žaisti žaidimų eilę</h2>
 
       <!-- Filtrai -->
       <div class="mb-4 flex flex-wrap gap-3 items-center">
-        <input
-            v-model="filterQuery"
-            placeholder="🔍 Ieškoti pagal pavadinimą..."
-            class="border rounded px-3 py-1 text-sm w-60"
-        />
+        <input v-model="filterQuery" placeholder="🔍 Pavadinimas..." class="border rounded px-3 py-1 text-sm w-60" />
+
+        <div class="flex items-center gap-1 text-sm">
+          ⏱️ <input v-model.number="filterPlaytimeMin" type="number" class="w-16 border rounded px-1 py-0.5" placeholder="min" />
+          –
+          <input v-model.number="filterPlaytimeMax" type="number" class="w-16 border rounded px-1 py-0.5" placeholder="max" />
+        </div>
+
+        <div class="flex items-center gap-1 text-sm">
+          🧠 <input v-model.number="filterComplexityMin" type="number" class="w-16 border rounded px-1 py-0.5" placeholder="min" />
+          –
+          <input v-model.number="filterComplexityMax" type="number" class="w-16 border rounded px-1 py-0.5" placeholder="max" />
+        </div>
+
+        <div class="flex items-center gap-1 text-sm">
+          ⭐ <input v-model.number="filterRatingMin" type="number" class="w-16 border rounded px-1 py-0.5" placeholder="min" />
+          –
+          <input v-model.number="filterRatingMax" type="number" class="w-16 border rounded px-1 py-0.5" placeholder="max" />
+        </div>
+
+        <div class="flex items-center gap-1 text-sm">
+          👥 <input v-model.number="filterBestPlayers" type="number" class="w-16 border rounded px-1 py-0.5" placeholder="#" />
+        </div>
+
         <select v-model="filterMechanic" class="border rounded px-2 py-1 text-sm">
           <option value="">🎮 Visi mechanikos</option>
           <option v-for="m in allMechanics" :key="m" :value="m">{{ m }}</option>
         </select>
+
         <select v-model="filterCategory" class="border rounded px-2 py-1 text-sm">
           <option value="">🎭 Visos temos</option>
           <option v-for="c in allCategories" :key="c" :value="c">{{ c }}</option>
         </select>
       </div>
 
-      <div v-if="filteredGames.length === 0" class="text-center text-gray-600">
+      <div v-if="sortedFilteredGames.length === 0" class="text-center text-gray-600">
         ❌ Pagal pasirinktus filtrus žaidimų nerasta!
       </div>
 
-      <draggable v-model="games" item-key="game.id" :list="filteredGames" handle=".drag-handle" class="space-y-2">
+      <draggable v-model="games" item-key="game.id" :list="sortedFilteredGames" handle=".drag-handle" class="space-y-2">
         <template #item="{ element, index }">
           <div class="flex items-start gap-3 border rounded px-3 py-2 bg-gray-50">
             <span class="drag-handle cursor-move mt-2">☰</span>
@@ -32,8 +52,11 @@
             <div class="flex-1">
               <p class="font-semibold text-base">{{ element.game.title }}</p>
               <p class="text-sm text-gray-600">
-                👥 {{ element.game.min_players }}–{{ element.game.max_players }} žaidėjai •
-                ⏱️ {{ element.game.playtime_minutes }} min
+                👥 {{ element.game.min_players }}–{{ element.game.max_players }} žaidėjai
+                <span v-if="element.game.best_player_count" class="text-green-700 font-medium">
+                  (🎯 Geriausia su {{ element.game.best_player_count }})
+                </span>
+                • ⏱️ {{ element.game.playtime_minutes }} min
               </p>
               <p class="text-sm text-gray-600">
                 ⭐ Reitingas: {{ element.game.average_rating?.toFixed(2) ?? '–' }} •
@@ -56,7 +79,7 @@
         <button @click="$emit('close')" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Atšaukti</button>
         <button
             @click="submitVotes"
-            :disabled="filteredGames.length === 0"
+            :disabled="sortedFilteredGames.length === 0"
             class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
           🗳️ Balsuoti
@@ -78,9 +101,17 @@ const route = useRoute()
 
 const games = ref<any[]>([])
 
+// Filtrai
 const filterQuery = ref('')
 const filterMechanic = ref('')
 const filterCategory = ref('')
+const filterPlaytimeMin = ref<number | null>(null)
+const filterPlaytimeMax = ref<number | null>(null)
+const filterComplexityMin = ref<number | null>(null)
+const filterComplexityMax = ref<number | null>(null)
+const filterRatingMin = ref<number | null>(null)
+const filterRatingMax = ref<number | null>(null)
+const filterBestPlayers = ref<number | null>(null)
 
 const allMechanics = ref<string[]>([])
 const allCategories = ref<string[]>([])
@@ -90,7 +121,6 @@ const fetchAvailableGames = async () => {
     const res = await axios.get(`/events/${route.params.id}/available-games/`)
     games.value = res.data
 
-    // Surinkti unikalius mechanikos / temas iš duomenų
     const mechanicsSet = new Set<string>()
     const categoriesSet = new Set<string>()
 
@@ -106,19 +136,40 @@ const fetchAvailableGames = async () => {
   }
 }
 
+// Filtruoti
 const filteredGames = computed(() =>
     games.value.filter((item) => {
-      const titleMatch = item.game.title.toLowerCase().includes(filterQuery.value.toLowerCase())
-      const mechanicMatch =
-          !filterMechanic.value || item.game.mechanics?.includes(filterMechanic.value)
-      const categoryMatch =
-          !filterCategory.value || item.game.categories?.includes(filterCategory.value)
-      return titleMatch && mechanicMatch && categoryMatch
+      const g = item.game
+      const titleMatch = g.title.toLowerCase().includes(filterQuery.value.toLowerCase())
+      const mechanicMatch = !filterMechanic.value || g.mechanics?.includes(filterMechanic.value)
+      const categoryMatch = !filterCategory.value || g.categories?.includes(filterCategory.value)
+      const playtimeMatch =
+          (!filterPlaytimeMin.value || g.playtime_minutes >= filterPlaytimeMin.value) &&
+          (!filterPlaytimeMax.value || g.playtime_minutes <= filterPlaytimeMax.value)
+      const complexityMatch =
+          (!filterComplexityMin.value || g.complexity >= filterComplexityMin.value) &&
+          (!filterComplexityMax.value || g.complexity <= filterComplexityMax.value)
+      const ratingMatch =
+          (!filterRatingMin.value || g.average_rating >= filterRatingMin.value) &&
+          (!filterRatingMax.value || g.average_rating <= filterRatingMax.value)
+
+      const bestPlayersMatch =
+          !filterBestPlayers.value || g.best_player_count == String(filterBestPlayers.value)
+
+      return titleMatch && mechanicMatch && categoryMatch && playtimeMatch && complexityMatch && ratingMatch && (bestPlayersMatch || !filterBestPlayers.value)
     })
 )
 
+// Prioritizuoti pagal best_player_count
+const sortedFilteredGames = computed(() => {
+  if (!filterBestPlayers.value) return filteredGames.value
+  const best = filteredGames.value.filter(g => g.game.best_player_count == String(filterBestPlayers.value))
+  const rest = filteredGames.value.filter(g => g.game.best_player_count != String(filterBestPlayers.value))
+  return [...best, ...rest]
+})
+
 const submitVotes = async () => {
-  const votes = filteredGames.value.map((item, index) => ({
+  const votes = sortedFilteredGames.value.map((item, index) => ({
     game_id: item.game.id,
     rank: index + 1,
   }))
