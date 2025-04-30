@@ -100,12 +100,29 @@ def fetch_game_from_bgg(bgg_id=None, title=None):
                 'language_dependence': language_dependence,
             }
         )
+        game, created = Game.objects.get_or_create(bgg_id=bgg_id)
 
+        # Jeigu buvo sukurtas dabar — užpildom iš karto
+        # Jeigu jau egzistavo — atnaujinam duomenis
+        game.title = title
+        game.min_players = min_players
+        game.max_players = max_players
+        game.playtime_minutes = playtime
+        game.thumbnail_url = thumbnail_url
+        game.average_rating = average_rating
+        game.complexity = complexity
+        game.overall_rank = overall_rank
+        game.recommended_age = recommended_age
+        game.categories = categories
+        game.mechanics = mechanics
+        game.language_dependence = language_dependence
+        game.save()
         return game
 
     except Exception as e:
         print(f"Klaida parsisiunčiant iš BGG: {e}")
         return None
+
 
 
 class GameCollectionCSVImportView(APIView):
@@ -216,3 +233,4 @@ class GameCollectionCSVImportView(APIView):
             "added": added_games,
             "skipped": skipped,
         })
+
