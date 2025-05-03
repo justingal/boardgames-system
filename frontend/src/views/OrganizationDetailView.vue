@@ -15,7 +15,6 @@
             ✏️ Redaguoti
           </button>
         </div>
-        <h1 class="text-3xl font-bold mb-2">{{ organization.name }}</h1>
         <p class="text-gray-600 mb-2">{{ organization.description }}</p>
         <div class="text-sm text-gray-500 space-y-1">
           <p><strong>Miestas:</strong> {{ organization.city }}</p>
@@ -82,6 +81,7 @@
           </div>
         </div>
       </div>
+
       <!-- Organizacijos nariai -->
       <h2 class="text-2xl font-semibold mt-10 mb-4">Nariai</h2>
 
@@ -99,8 +99,8 @@
             <div>
               <p class="font-medium text-gray-800">{{ member.username }}</p>
 
-              <!-- Tik organizatoriams rodom papildomą info -->
-              <div v-if="isOrganizer">
+              <!-- Jei prisijungęs vartotojas yra organizacijos sukūrėjas, rodo informaciją apie visus -->
+              <div v-if="userIsCreator">
                 <p class="text-sm text-gray-500">{{ member.first_name }} {{ member.last_name }}</p>
                 <p class="text-sm text-gray-400">{{ member.email }}</p>
               </div>
@@ -213,9 +213,8 @@ const formatDateTime = (datetimeStr: string) => {
 }
 
 const canKick = (memberId: number) => {
-  return isOrganizer.value && user.value && user.value.id !== memberId
+  return userIsCreator.value && user.value && user.value.id !== memberId
 }
-
 
 const kickMember = async (memberId: number) => {
   try {
@@ -231,23 +230,18 @@ const kickMember = async (memberId: number) => {
   }
 }
 
-// Apskaičiuojam ar prisijungęs vartotojas yra organizatorius
-const isOrganizer = computed(() => {
+// Ar prisijungęs vartotojas yra šios organizacijos sukūrėjas
+const userIsCreator = computed(() => {
   if (!organization.value || !user.value) return false
   return organization.value.created_by === user.value.username
 })
-const showEditModal = ref(false)
 
-const userIsCreator = computed(() => {
-  return user.value?.username === organization.value?.created_by
-})
+const showEditModal = ref(false)
 
 const handleUpdated = async () => {
   await fetchOrganization()
   showEditModal.value = false
 }
-
-
 
 onMounted(() => {
   fetchOrganization()
