@@ -23,14 +23,21 @@ from rest_framework import filters
 def remove_member(request, org_id, user_id):
     try:
         membership = Membership.objects.get(organization_id=org_id, user_id=user_id)
+
+        # Tik organizatorius gali šalinti
         if request.user != membership.organization.created_by:
             return Response({"error": "Only the organization leader can remove members."}, status=403)
+
+        # Negalima pašalinti savęs
+        if request.user.id == user_id:
+            return Response({"error": "Negalite pašalinti savęs."}, status=400)
 
         membership.delete()
         return Response({"detail": "Member removed."}, status=204)
 
     except Membership.DoesNotExist:
         return Response({"error": "Membership not found."}, status=404)
+
 
 class OrganizationViewSet(viewsets.ModelViewSet):
     queryset = Organization.objects.all()

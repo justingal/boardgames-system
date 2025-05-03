@@ -64,6 +64,7 @@ urlpatterns = [
     path('events/<int:pk>/vote/', EventGameVoteView.as_view(), name='event-vote'),
     path('events/<int:pk>/vote-results/', EventGameVoteResultsView.as_view(), name='event-vote-results'),
     path('users/me/', CurrentUserView.as_view(), name='current-user'),
+    path('organizations/<int:org_id>/remove-member/<int:user_id>/', remove_member, name='remove-member'),
     path('events/<int:pk>/importable-games/', EventImportableGamesView.as_view()),
 ]
 
