@@ -79,6 +79,28 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         context['request'] = self.request
         return context
 
+    def get_queryset(self):
+        user = self.request.user
+
+        # Jei vartotojas nėra prisijungęs, grąžink tuščią queryset
+        if not user.is_authenticated:
+            return Organization.objects.none()
+
+        # Jei vartotojas yra organizatorius, grąžink tik jo sukurtas organizacijas
+        # Tikriname ar vartotojas turi profilio modelį su role arba naudojame groups
+        try:
+            # Bandome gauti rolę iš profilio, jei toks yra
+            if hasattr(user, 'profile') and hasattr(user.profile, 'role') and user.profile.role == 'organizer':
+                return Organization.objects.filter(created_by=user)
+            # Arba tikriname ar vartotojas priklauso organizatorių grupei
+            elif user.groups.filter(name='organizer').exists():
+                return Organization.objects.filter(created_by=user)
+        except Exception:
+            # Jei nepavyksta patikrinti rolės, grąžiname visas organizacijas
+            pass
+
+        # Kitų tipų vartotojams grąžink visas organizacijas
+        return Organization.objects.all()
 
 class GameCategoryViewSet(viewsets.ModelViewSet):
     queryset = GameCategory.objects.all()

@@ -15,7 +15,7 @@
 
     <!-- Filtrai -->
     <div class="bg-white shadow p-4 rounded-lg mb-6 flex flex-wrap gap-4 items-center">
-      <label class="flex items-center space-x-2 text-sm text-gray-700">
+      <label v-if="userRole !== 'organizer'" class="flex items-center space-x-2 text-sm text-gray-700">
         <input type="checkbox" v-model="filters.onlyMine" @change="fetchOrganizations" />
         <span>Rodyti tik savo organizacijas</span>
       </label>
@@ -49,10 +49,15 @@
       </select>
     </div>
 
+    <!-- Informacinė žinutė organizatoriams -->
+    <div v-if="userRole === 'organizer'" class="mb-4 p-3 bg-blue-50 border-l-4 border-blue-500 text-blue-700">
+      Jūs matote tik savo sukurtas organizacijas
+    </div>
+
     <!-- Organizacijų sąrašas -->
     <div class="space-y-4">
       <div
-        v-for="org in organizations"
+        v-for="org in filteredOrganizations"
         :key="org.id"
         class="border rounded-lg p-4 bg-white shadow-sm flex justify-between items-center"
       >
@@ -86,11 +91,12 @@
 </template>
 
 <script setup>
-import {ref, onMounted} from 'vue'
+import {ref, onMounted, computed} from 'vue'
 import axios from '../api/axios'
-import { jwtDecode } from 'jwt-decode'
+import {jwtDecode} from 'jwt-decode'
 import CreateOrganizationModal from '../components/CreateOrganizationModal.vue'
-import { useRouter } from 'vue-router'
+import {useRouter} from 'vue-router'
+
 const router = useRouter()
 
 const showModal = ref(false)
@@ -117,12 +123,37 @@ const categories = [
   'Social deduction'
 ]
 
-let userRole = null
+const userRole = ref(null)
 const token = localStorage.getItem('access')
 if (token) {
-  const decoded = jwtDecode(token)
-  userRole = decoded.role
+  try {
+    const decoded = jwtDecode(token)
+    // Įvairūs būdai, kaip role gali būti saugoma JWT
+    userRole.value = decoded.role ||
+      (decoded.groups && decoded.groups.includes('organizer') ? 'organizer' : 'user') ||
+      (decoded.profile?.role) ||
+      'user'
+    console.log('Detected role:', userRole.value)
+  } catch (error) {
+    console.error('Klaida dekoduojant token:', error)
+    userRole.value = 'user'
+  }
 }
+
+const filteredOrganizations = computed(() => {
+  let result = [...organizations.value]
+
+  // Organizatoriai jau gauna tik savo organizacijas iš API
+  // Kitiems vartotojams filtruojame tik jei reikia
+  if (userRole.value !== 'organizer' && filters.value.onlyMine) {
+    result = result.filter(o => o.is_member)
+  }
+
+  // Rūšiuojame, kad narystės būtų viršuje
+  result.sort((a, b) => (b.is_member === true) - (a.is_member === true))
+
+  return result
+})
 
 const fetchOrganizations = async () => {
   try {
@@ -133,14 +164,14 @@ const fetchOrganizations = async () => {
     if (filters.value.category) params.category_name = filters.value.category
     if (filters.value.city) params.city = filters.value.city
 
-    const response = await axios.get('/organizations/', {params})
+    const response = await axios.get('/organizations/', {
+      params,
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
 
-    let all = response.data
-    if (filters.value.onlyMine) {
-      all = all.filter(o => o.is_member)
-    }
-    all.sort((a, b) => (b.is_member === true) - (a.is_member === true))
-    organizations.value = all
+    organizations.value = response.data
   } catch (error) {
     console.error('Nepavyko gauti organizacijų:', error)
   }
