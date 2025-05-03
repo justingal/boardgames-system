@@ -5,6 +5,16 @@
     <div v-else>
       <!-- Organizacijos informacija -->
       <div class="mb-8">
+        <div class="flex justify-between items-center mb-8">
+          <h1 class="text-3xl font-bold">{{ organization.name }}</h1>
+          <button
+            v-if="userIsCreator"
+            @click="showEditModal = true"
+            class="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+          >
+            ✏️ Redaguoti
+          </button>
+        </div>
         <h1 class="text-3xl font-bold mb-2">{{ organization.name }}</h1>
         <p class="text-gray-600 mb-2">{{ organization.description }}</p>
         <div class="text-sm text-gray-500 space-y-1">
@@ -109,10 +119,18 @@
       </ul>
     </div>
   </div>
+  <OrganizationEditModal
+    v-if="organization"
+    :visible="showEditModal"
+    :organization="organization"
+    @close="showEditModal = false"
+    @updated="handleUpdated"
+  />
 </template>
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import OrganizationEditModal from '@/components/OrganizationEditModal.vue'
 import axios from '../api/axios'
 
 const route = useRoute()
@@ -218,6 +236,17 @@ const isOrganizer = computed(() => {
   if (!organization.value || !user.value) return false
   return organization.value.created_by === user.value.username
 })
+const showEditModal = ref(false)
+
+const userIsCreator = computed(() => {
+  return user.value?.username === organization.value?.created_by
+})
+
+const handleUpdated = async () => {
+  await fetchOrganization()
+  showEditModal.value = false
+}
+
 
 
 onMounted(() => {

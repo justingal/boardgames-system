@@ -42,10 +42,31 @@ def remove_member(request, org_id, user_id):
 class OrganizationViewSet(viewsets.ModelViewSet):
     queryset = Organization.objects.all()
     serializer_class = OrganizationSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['privacy', 'categories', 'city']
     search_fields = ['name']
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+
+        # Tik organizatorius gali redaguoti
+        if instance.created_by != request.user:
+            return Response({'detail': 'Neturite leidimo redaguoti šios organizacijos.'}, status=403)
+
+        partial = kwargs.pop('partial', True)  # PATCH by default
+        data = request.data.copy()
+
+        # Apdorojam kategoriją
+        category_name = data.pop('category_name', None)
+        if category_name:
+            category, _ = GameCategory.objects.get_or_create(name=category_name)
+            instance.categories.set([category])
+
+        serializer = self.get_serializer(instance, data=data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
 
     def perform_create(self, serializer):
         org = serializer.save(created_by=self.request.user)
