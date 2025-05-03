@@ -14,7 +14,7 @@ class GameCategorySerializer(serializers.ModelSerializer):
 class OrganizationSerializer(serializers.ModelSerializer):
     created_by = serializers.ReadOnlyField(source='created_by.username')
     members = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    categories = GameCategorySerializer(many=True, read_only=True)
+    categories = GameCategorySerializer(many=True)
     is_member = serializers.SerializerMethodField()
     city = serializers.CharField()
     events = EventSerializer(many=True, read_only=True)  # <-- pridėti šitą

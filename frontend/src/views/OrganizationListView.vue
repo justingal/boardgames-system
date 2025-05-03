@@ -45,7 +45,7 @@
 
       <select v-model="filters.category" @change="fetchOrganizations" class="border border-gray-300 rounded px-3 py-2">
         <option value="">Visos grupės</option>
-        <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+        <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
       </select>
     </div>
 
@@ -67,6 +67,14 @@
           <p class="text-sm text-gray-500">Viešumas: {{ privacyLabels[org.privacy] }}</p>
           <p class="text-sm text-gray-500">Sukūrė: {{ org.created_by }}</p>
           <p class="text-sm text-gray-500">Miestas: {{ org.city }}</p>
+          <p class="text-sm text-gray-500">
+            Kategorija:
+            <span v-if="org.categories && org.categories.length > 0">
+    {{ org.categories.map(cat => cat.name).join(', ') }}
+  </span>
+            <span v-else>–</span>
+          </p>
+
         </div>
 
         <div class="ml-4">
@@ -115,13 +123,13 @@ const privacyLabels = {
   private: '🚫 Privati – nematoma, tik pakviestiesiems'
 }
 
-const categories = [
+const categories = ref([
   'Board games',
   'D&D',
   'Card games',
   'Miniatures',
   'Social deduction'
-]
+])
 
 const userRole = ref(null)
 const token = localStorage.getItem('access')
@@ -154,14 +162,21 @@ const filteredOrganizations = computed(() => {
 
   return result
 })
-
+const fetchCategories = async () => {
+  try {
+    const res = await axios.get('/categories/')
+    categories.value = res.data
+  } catch (err) {
+    console.error('Nepavyko gauti kategorijų:', err)
+  }
+}
 const fetchOrganizations = async () => {
   try {
     const params = {}
 
     if (filters.value.search) params.search = filters.value.search
     if (filters.value.privacy) params.privacy = filters.value.privacy
-    if (filters.value.category) params.category_name = filters.value.category
+    if (filters.value.category) params.categories = filters.value.category
     if (filters.value.city) params.city = filters.value.city
 
     const response = await axios.get('/organizations/', {
@@ -192,5 +207,9 @@ const goToOrganization = (orgId) => {
   router.push(`/organizations/${orgId}`)
 }
 
-onMounted(fetchOrganizations)
+onMounted(() => {
+  fetchCategories()
+  fetchOrganizations()
+})
+
 </script>
