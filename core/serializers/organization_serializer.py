@@ -2,6 +2,7 @@ from rest_framework import serializers
 from core.models import Organization, GameCategory, Game
 from django.contrib.auth.models import User
 from core.models.organization import Membership
+from core.serializers.event_serializer import EventSerializer
 
 
 class GameCategorySerializer(serializers.ModelSerializer):
@@ -16,13 +17,14 @@ class OrganizationSerializer(serializers.ModelSerializer):
     categories = GameCategorySerializer(many=True, read_only=True)
     is_member = serializers.SerializerMethodField()
     city = serializers.CharField()
+    events = EventSerializer(many=True, read_only=True)  # <-- pridėti šitą
 
     class Meta:
         model = Organization
         fields = [
             'id', 'name', 'description', 'created_by',
             'members', 'categories',  'privacy', 'created_at',
-            'is_member', 'city'
+            'is_member', 'city', 'events'
         ]
 
     def get_is_member(self, obj):

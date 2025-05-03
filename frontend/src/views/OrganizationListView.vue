@@ -90,6 +90,8 @@ import {ref, onMounted} from 'vue'
 import axios from '../api/axios'
 import { jwtDecode } from 'jwt-decode'
 import CreateOrganizationModal from '../components/CreateOrganizationModal.vue'
+import { useRouter } from 'vue-router'
+const router = useRouter()
 
 const showModal = ref(false)
 const organizations = ref([])
@@ -156,7 +158,7 @@ const joinOrganization = async (orgId) => {
 }
 
 const goToOrganization = (orgId) => {
-  alert(`Nueiti į organizaciją ${orgId} – čia bus puslapis vėliau`)
+  router.push(`/organizations/${orgId}`)
 }
 
 onMounted(fetchOrganizations)

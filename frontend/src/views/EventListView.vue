@@ -71,7 +71,7 @@
           <div>
             <p class="text-sm text-gray-800"><span class="font-semibold">Adresas:</span> {{ event.address }}</p>
             <p class="text-sm text-gray-800"><span class="font-semibold">Stalo dydis:</span> {{ tableSizeLabels[event.table_size] }}</p>
-            <p class="text-sm text-gray-800"><span class="font-semibold">Organizatorius:</span>
+            <p class="text-sm text-gray-800"><span class="font-semibold">Organizatorius: </span>
               <span v-if="event.actual_organizer"> {{ event.actual_organizer }}<span v-if="event.first_player_is_organizer">(pirmas prisijungęs)</span></span><span v-else>{{ event.created_by }}</span></p>
             <p class="text-sm text-gray-800"><span class="font-semibold">Viešumas:</span> {{ privacyLabels[event.visibility] }}</p>
           </div>

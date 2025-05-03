@@ -22,6 +22,8 @@ const routes = [
   { path: '/events', name: 'events', component: EventListView },
   { path: '/events/:id', name: 'event-detail', component: EventDetailView },
   { path: '/collection', name: 'Kolekcija', component: GameCollectionView },
+  { path: '/organizations/:id', name: 'OrganizationDetail', component: () => import('../views/OrganizationDetailView.vue')
+  },
   {
     path: '/:pathMatch(.*)*',
     redirect: '/'
