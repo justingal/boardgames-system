@@ -7,7 +7,7 @@
       />
     </div>
     <div class="mt-2 text-sm text-gray-600" v-if="selectedDates.length">
-      Pasirinktos datos: {{ selectedDates.join(', ') }}
+      Pasirinktos datos: {{ formattedSelectedDates }}
     </div>
   </div>
 </template>
@@ -29,13 +29,30 @@ const emit = defineEmits(['update:modelValue'])
 const fullCalendarRef = ref(null)
 const selectedDates = ref([])
 
-// Konfigūruojame kalendoriaus nustatymus kaip objektą
+// Format date to YYYY-MM-DD
+function formatDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Format date for display (YYYY-MM-DD)
+function formatDateForDisplay(dateStr) {
+  const date = new Date(dateStr);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Calendar configuration
 const calendarOptions = {
   plugins: [dayGridPlugin, interactionPlugin],
   initialView: 'dayGridMonth',
   selectable: true,
   locale: 'lt',
-  firstDay: 1, // Pirmadienis kaip savaitės pradžia
+  firstDay: 1, // Monday as first day
   headerToolbar: {
     left: 'prev,next today',
     center: 'title',
@@ -57,97 +74,83 @@ const calendarOptions = {
       textColor: 'white'
     }))
   }),
+  datesSet: function(info) {
+    // When month is changed, ensure the selected dates are properly displayed
+    if (fullCalendarRef.value) {
+      fullCalendarRef.value.getApi().render();
+    }
+  },
   height: 'auto'
 }
 
-// Konvertuojame dienų skaičius į pilnas datos eilutes
-function convertDayNumbersToFullDates(dayNumbers) {
-  const currentDate = new Date();
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
+// Format selected dates for display
+const formattedSelectedDates = computed(() => {
+  if (!selectedDates.value.length) return '';
 
-  return dayNumbers.map(day => {
-    const date = new Date(year, month, parseInt(day));
-    return formatDate(date);
-  });
-}
+  return selectedDates.value
+    .sort((a, b) => new Date(a) - new Date(b))
+    .map(dateStr => formatDateForDisplay(dateStr))
+    .join(', ');
+});
 
-// Formatuojame datą į YYYY-MM-DD formatą
-function formatDate(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
+// Handle date click in calendar
+// Handle date click in calendar
+function handleDateClick(info) {
+  const clickedDate = info.dateStr; // YYYY-MM-DD format
 
-// Inicializuojame kalendorių kai komponentas užsikrauna
-onMounted(() => {
-  // Jei turime pradinių reikšmių
-  if (props.modelValue && props.modelValue.length) {
-    // Konvertuojame dienų skaičius į pilnas datas
-    selectedDates.value = convertDayNumbersToFullDates(props.modelValue);
+  // Check if date is already selected
+  const index = selectedDates.value.findIndex(dateStr => dateStr === clickedDate);
+
+  if (index > -1) {
+    // If already selected, remove it
+    selectedDates.value.splice(index, 1);
+  } else {
+    // If not selected, add it
+    selectedDates.value.push(clickedDate);
   }
-})
 
-// Reaguojame į modelValue pakeitimus
+  // Sort the dates and emit full date strings
+  // Svarbu - dabar įsitikiname, kad perduodame tikras datas YYYY-MM-DD formatu,
+  // o ne tik dienų skaičius
+  const sortedDates = [...selectedDates.value].sort((a, b) => new Date(a) - new Date(b));
+  console.log("Perduodamos datos:", sortedDates); // Debugging
+  emit('update:modelValue', sortedDates);
+}
+
+// React to modelValue changes from outside
 watch(() => props.modelValue, (newVal) => {
-  // Jei modelValue pasikeičia iš išorės ir skiriasi nuo dabartinių pasirinktų dienų skaičių
   if (newVal && newVal.length) {
-    const currentDayNumbers = selectedDates.value.map(d => new Date(d).getDate());
-
-    // Tikriname, ar masyvai skirtingi
-    const isDifferent = !arraysEqual(
-      [...newVal].sort((a, b) => a - b),
-      [...currentDayNumbers].sort((a, b) => a - b)
+    // Check if we're getting full date strings or just day numbers
+    const allAreDateStrings = newVal.every(item =>
+      typeof item === 'string' && item.includes('-')
     );
 
-    if (isDifferent) {
-      selectedDates.value = convertDayNumbersToFullDates(newVal);
+    if (allAreDateStrings) {
+      // They're already full date strings
+      selectedDates.value = [...newVal];
+    } else {
+      // They're day numbers or other format - konvertuojame į YYYY-MM-DD
+      if (fullCalendarRef.value) {
+        const calendar = fullCalendarRef.value.getApi();
+        const currentDate = calendar.getDate();
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+
+        selectedDates.value = newVal.map(day => {
+          // Jei tai jau yra dateString formatu, tiesiog grąžiname
+          if (typeof day === 'string' && day.includes('-')) {
+            return day;
+          }
+          // Kitu atveju, konvertuojame į datą
+          const date = new Date(year, month, parseInt(day));
+          return formatDate(date);
+        });
+      }
     }
   } else if (newVal && newVal.length === 0) {
     selectedDates.value = [];
   }
-}, { deep: true })
-
-// Reaguojame į selectedDates pakeitimus
-watch(() => selectedDates.value, (newVal) => {
-  // Išgauname tik dienų skaičius (1-31) iš pilnų datų
-  const dayNumbers = newVal.map(dateStr => new Date(dateStr).getDate());
-  emit('update:modelValue', dayNumbers);
-}, { deep: true })
-
-// Patikrina ar du masyvai yra lygūs
-function arraysEqual(a, b) {
-  if (a.length !== b.length) return false;
-  return a.every((val, idx) => val === b[idx]);
-}
-
-// Apdoroja datos paspaudimą kalendoriuje
-function handleDateClick(info) {
-  const clickedDate = info.dateStr; // YYYY-MM-DD formatas
-
-  // Ieškome ar ši data jau yra pasirinkta
-  const index = selectedDates.value.findIndex(dateStr => dateStr === clickedDate);
-
-  if (index > -1) {
-    // Jei data jau pasirinkta, pašaliname ją
-    selectedDates.value.splice(index, 1);
-  } else {
-    // Jei data dar nepasirinkta, pridedame ją
-    selectedDates.value.push(clickedDate);
-  }
-}
-
-// Formatuojame dienas rodymui
-const formattedDaysOfMonth = computed(() => {
-  if (!selectedDates.value.length) return '';
-
-  const days = selectedDates.value
-    .map(dateStr => new Date(dateStr).getDate())
-    .sort((a, b) => a - b);
-
-  return days.join(', ');
-})
+}, { deep: true });
 </script>
 
 <style scoped>

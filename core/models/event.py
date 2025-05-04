@@ -7,10 +7,12 @@ class Event(models.Model):
         ('S', 'Mažas'),
         ('M', 'Vidutinis'),
         ('L', 'Didelis'),
+        ('XL', 'Labai didelis'),
     ]
 
     VISIBILITY_CHOICES = [
         ('public', 'Viešas – visi gali prisijungti'),
+        ('protected', 'Apsaugota - reikia leidimo'),
         ('private', 'Privatus – tik pakviestieji'),
     ]
 
@@ -21,7 +23,7 @@ class Event(models.Model):
     description = models.TextField(blank=True)
     address = models.CharField(max_length=255)  # Vieta (vietoj miesto)
 
-    table_size = models.CharField(max_length=1, choices=TABLE_SIZES, default='M')
+    table_size = models.CharField(max_length=2, choices=TABLE_SIZES, default='M')
     perks = models.TextField(blank=True)
 
     start_time = models.DateTimeField()
@@ -30,7 +32,7 @@ class Event(models.Model):
     visibility = models.CharField(max_length=10, choices=VISIBILITY_CHOICES, default='public')
 
     is_repeating = models.BooleanField(default=False)
-    repeat_days = models.CharField(max_length=100, blank=True)  # Pvz: "Mon,Wed,Fri"
+    repeat_days = models.TextField(blank=True)  # Pakeista į TextField, kad tilptų ilgesni sąrašai, pvz. YYYY-MM-DD,YYYY-MM-DD,...
     first_player_is_organizer = models.BooleanField(default=False)
     organizers = models.ManyToManyField(User, related_name='organized_events', blank=True)
     games = models.ManyToManyField(Game, blank=True, related_name='events')

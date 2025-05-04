@@ -90,8 +90,12 @@
           </label>
 
           <div v-if="form.is_repeating" class="mt-4">
-            <p class="mb-2 text-sm text-gray-600">Pasirinkite konkrečias kalendoriaus datas, kuriomis norite kartoti renginį tuo pačiu metu:</p>
+            <p class="mb-2 text-sm text-gray-600">Pasirinkite konkrečias kalendoriaus datas, kuriomis norite kartoti renginį:</p>
+            <!-- Using your RepeatDatePicker component -->
             <RepeatDatePicker v-model="form.repeat_days" />
+            <div class="mt-2 text-xs text-gray-500">
+              Pastaba: Pasirinkite tikslias datas. Renginys bus kartojamas tik pasirinktomis datomis.
+            </div>
           </div>
         </div>
 
@@ -133,7 +137,8 @@ const form = ref({
   table_size: 'M',
   perksList: [],
   is_repeating: false,
-  repeat_days: []
+  repeat_days: [],
+  first_player_is_organizer: true
 })
 
 const allPerks = [
@@ -167,6 +172,7 @@ const fetchOrganizations = async () => {
 
 onMounted(() => {
   fetchOrganizations()
+  // Set default dates to today
   const today = new Date()
   const yyyy = today.getFullYear()
   const mm = String(today.getMonth() + 1).padStart(2, '0')
@@ -179,21 +185,55 @@ onMounted(() => {
   form.value.end_time = '10:00'
 })
 
+// Konvertuoja pasirinktas datas į formą, kuri tinkama API
+function formatRepeatDaysForAPI(dates) {
+  if (!dates || !dates.length) return '';
+
+  // Grąžiname datas kaip išrinktų datų ISO YYYY-MM-DD formatu sarašą
+  return dates.join(',');
+}
+
 const submit = async () => {
   try {
     const token = localStorage.getItem('access')
+
+    // Įsitikinime, kad first_player_is_organizer yra teisingai perduodamas
+    const isFirstPlayerOrganizer = form.value.first_player_is_organizer === true;
+
+    // Sukuriame vietinius DateTime objektus pradžios ir pabaigos laikams
+    let startDate = new Date(`${form.value.start_date}T${form.value.start_time}`);
+    let endDate = new Date(`${form.value.end_date}T${form.value.end_time}`);
+
+    // Gaukime vietinį laiko poslinkį minutėmis
+    const localOffset = new Date().getTimezoneOffset();
+
+    // Konvertuokime į ISO string, bet išsaugodami vietinį laiką
+    const startISOString = new Date(
+      startDate.getTime() - (localOffset * 60000)
+    ).toISOString();
+
+    const endISOString = new Date(
+      endDate.getTime() - (localOffset * 60000)
+    ).toISOString();
+
+    // Paruošiame pasikartojančias datas - svarbu išlaikyti formatą
+    // Išsaugome pilnus datų stringus YYYY-MM-DD formatu
+    const repeatedDays = form.value.is_repeating && form.value.repeat_days.length
+      ? form.value.repeat_days.join(',')
+      : '';
+
     const payload = {
       title: form.value.title,
       description: form.value.description,
       address: form.value.address,
-      start_time: `${form.value.start_date}T${form.value.start_time}`,
-      end_time: `${form.value.end_date}T${form.value.end_time}`,
+      start_time: startISOString,
+      end_time: endISOString,
       table_size: form.value.table_size,
       perks: form.value.perksList.join(', '),
       is_repeating: form.value.is_repeating,
-      repeat_days: form.value.repeat_days.length ? form.value.repeat_days.join(',') : '',
+      repeat_days: repeatedDays,
       organization: form.value.organization,
-      first_player_is_organizer: form.value.first_player_is_organizer ?? true, // 🟢 ŠITAS SVARBIAUSIAS!
+      first_player_is_organizer: isFirstPlayerOrganizer
     }
 
     console.log('Siunčiami duomenys:', payload);
@@ -223,7 +263,8 @@ const close = () => {
     table_size: 'M',
     perksList: [],
     is_repeating: false,
-    repeat_days: []
+    repeat_days: [],
+    first_player_is_organizer: true
   }
   emit('close')
 }

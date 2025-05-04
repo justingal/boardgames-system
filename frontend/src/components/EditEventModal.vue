@@ -71,17 +71,31 @@ const form = ref({
   end_time: ''
 })
 
-// Sync form fields when modal opens
 watch(() => props.eventData, (newData) => {
   if (newData) {
+    // Konvertuokime laikus į vietinę laiko juostą
+    const startTime = new Date(newData.start_time);
+    const endTime = new Date(newData.end_time);
+
+    // Formatuojame į YYYY-MM-DDThh:mm formatą, bet vietinės laiko juostos
+    const formatLocalDateTime = (date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    };
+
     form.value = {
       title: newData.title,
       description: newData.description,
       address: newData.address,
       table_size: newData.table_size,
       visibility: newData.visibility,
-      start_time: newData.start_time?.slice(0, 16),
-      end_time: newData.end_time?.slice(0, 16)
+      start_time: formatLocalDateTime(startTime),
+      end_time: formatLocalDateTime(endTime)
     }
   }
 }, { immediate: true })
@@ -89,7 +103,28 @@ watch(() => props.eventData, (newData) => {
 // Submit handler
 const submitEdit = async () => {
   try {
-    await axios.patch(`/events/${props.eventData.id}/`, form.value)
+    // Gaukime vietinį laiko poslinkį minutėmis
+    const localOffset = new Date().getTimezoneOffset();
+
+    // Paruoškime duomenis siuntimui, įvertindami laiko juostos skirtumą
+    const formData = {...form.value};
+
+    // Jei start_time ir end_time yra įvesti
+    if (formData.start_time) {
+      const startDate = new Date(formData.start_time);
+      formData.start_time = new Date(
+        startDate.getTime() - (localOffset * 60000)
+      ).toISOString();
+    }
+
+    if (formData.end_time) {
+      const endDate = new Date(formData.end_time);
+      formData.end_time = new Date(
+        endDate.getTime() - (localOffset * 60000)
+      ).toISOString();
+    }
+
+    await axios.patch(`/events/${props.eventData.id}/`, formData)
     emit('updated')      // Inform parent that update was successful
     emit('close')        // Close modal
   } catch (error) {

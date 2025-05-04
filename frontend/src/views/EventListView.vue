@@ -168,8 +168,19 @@ const privacyLabels = {
 
 
 const formatDateTime = (datetimeStr) => {
-  const options = { dateStyle: 'medium', timeStyle: 'short' }
-  return new Date(datetimeStr).toLocaleString('lt-LT', options)
+  if (!datetimeStr) return '';
+
+  // Sukuriame datą iš ISO string
+  const date = new Date(datetimeStr);
+
+  // Formatuojame pagal vietinę laiko juostą
+  const options = {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'UTC'  // Tai leis rodyti laiką taip, kaip jis buvo įvestas
+  };
+
+  return date.toLocaleString('lt-LT', options);
 }
 const goToEvent = (eventId) => {
   router.push(`/events/${eventId}`)

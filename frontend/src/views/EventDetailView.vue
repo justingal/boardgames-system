@@ -179,11 +179,21 @@ const privacyLabels = {
   private: '🚫 Privatus',
 }
 
-const formatDateTime = (datetimeStr: string) => {
-  const options = { dateStyle: 'medium', timeStyle: 'short' }
-  return new Date(datetimeStr).toLocaleString('lt-LT', options)
-}
+const formatDateTime = (datetimeStr) => {
+  if (!datetimeStr) return '';
 
+  // Sukuriame datą iš ISO string
+  const date = new Date(datetimeStr);
+
+  // Formatuojame pagal vietinę laiko juostą
+  const options = {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'UTC'  // Tai leis rodyti laiką taip, kaip jis buvo įvestas
+  };
+
+  return date.toLocaleString('lt-LT', options);
+}
 const fetchEvent = async () => {
   try {
     const res = await axios.get(`/events/${route.params.id}/`)

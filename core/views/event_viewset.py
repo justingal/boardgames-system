@@ -5,7 +5,8 @@ from core.models import Event, Organization
 from core.serializers import EventSerializer
 from django.utils.dateparse import parse_datetime
 from rest_framework.exceptions import PermissionDenied
-from datetime import timedelta
+from datetime import timedelta, datetime
+
 
 class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all()
@@ -55,42 +56,85 @@ class EventViewSet(viewsets.ModelViewSet):
         except Organization.DoesNotExist:
             raise ValueError("Selected organization does not exist")
 
+        # Pagrindinio įvykio sukūrimas
         base_event = serializer.save(created_by=user, organization=organization)
 
-        # ✅ Automatiškai pridedame kūrėją kaip dalyvį, jei first_player_is_organizer == False
+        # Automatiškai pridedame kūrėją kaip dalyvį, jei first_player_is_organizer == False
         if not base_event.first_player_is_organizer:
             base_event.players.add(user)
-            if not base_event.actual_organizer:
-                base_event.actual_organizer = user
+            base_event.organizers.add(user)
             base_event.save()
 
-        # Repeat logic (nekeičiamas)
+        # Repeat logic - patobulinta versija
         if base_event.is_repeating and base_event.repeat_days:
-            repeat_days = base_event.repeat_days.split(',')
-            for day_str in repeat_days:
-                try:
-                    day = int(day_str.strip())
-                    new_start = base_event.start_time.replace(day=day)
-                    new_end = base_event.end_time.replace(day=day)
-                    if new_start < base_event.start_time:
-                        new_start += timedelta(days=30)
-                        new_end += timedelta(days=30)
+            repeat_dates = base_event.repeat_days.split(',')
 
+            # Išsaugome trukmę ir laikus
+            base_start_time = base_event.start_time.time()
+            base_end_time = base_event.end_time.time()
+            base_duration = base_event.end_time - base_event.start_time
+
+            for date_str in repeat_dates:
+                try:
+                    # Skiriame datų stringus nuo kitų formatų
+                    date_str = date_str.strip()
+                    if not date_str:
+                        continue
+
+                    # Konvertuojame į datą
+                    try:
+                        # Bandome ISO formatą YYYY-MM-DD
+                        date_obj = datetime.fromisoformat(date_str).date()
+                    except Exception:
+                        try:
+                            # Bandome alternatyvų formatą
+                            date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+                        except Exception:
+                            print(f"Nepavyko konvertuoti datos {date_str}")
+                            continue
+
+                    # Jei ši data sutampa su pagrindinio įvykio data, praleidžiame
+                    if date_obj == base_event.start_time.date():
+                        continue
+
+                    # Sukuriame naują pradžios ir pabaigos laiką
+                    from django.utils import timezone
+
+                    # Panaudojame datetime.combine, kad sukurtume naują datetima objektą
+                    # su pasirinkta data ir originalios datos laiku
+                    naive_start = datetime.combine(date_obj, base_start_time)
+                    naive_end = datetime.combine(date_obj, base_end_time)
+
+                    # Jei pabaigos laikas yra mažesnis už pradžios laiką (t.y. kito ryto),
+                    # pridedame dieną prie pabaigos laiko
+                    if naive_end < naive_start:
+                        naive_end += timedelta(days=1)
+
+                    # Jei Django naudoja aware datetime (USE_TZ=True), konvertuojame į aware
+                    if timezone.is_aware(base_event.start_time):
+                        start_time = timezone.make_aware(naive_start)
+                        end_time = timezone.make_aware(naive_end)
+                    else:
+                        start_time = naive_start
+                        end_time = naive_end
+
+                    # Sukuriame naują įvykį
                     Event.objects.create(
                         title=base_event.title,
                         description=base_event.description,
                         address=base_event.address,
                         table_size=base_event.table_size,
                         perks=base_event.perks,
-                        start_time=new_start,
-                        end_time=new_end,
+                        start_time=start_time,
+                        end_time=end_time,
                         is_repeating=False,
                         visibility=base_event.visibility,
                         created_by=user,
                         organization=organization,
+                        first_player_is_organizer=base_event.first_player_is_organizer,
                     )
                 except Exception as e:
-                    print("Error creating repeated event:", e)
+                    print(f"Error creating repeated event: {e}")
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def join(self, request, pk=None):
