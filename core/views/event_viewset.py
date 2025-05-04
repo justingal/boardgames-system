@@ -118,7 +118,7 @@ class EventViewSet(viewsets.ModelViewSet):
                         start_time = naive_start
                         end_time = naive_end
 
-                    # Sukuriame naują įvykį su teisinga first_player_is_organizer reikšme
+                    # Sukuriame naują įvykį
                     repeated_event = Event.objects.create(
                         title=base_event.title,
                         description=base_event.description,
@@ -132,7 +132,6 @@ class EventViewSet(viewsets.ModelViewSet):
                         created_by=user,
                         organization=organization,
                         first_player_is_organizer=base_event.first_player_is_organizer,
-                        # SVARBU: Perduodame tą pačią reikšmę
                     )
 
                     # Jei first_player_is_organizer yra False, iš karto pridedame kūrėją
@@ -163,16 +162,32 @@ class EventViewSet(viewsets.ModelViewSet):
         event = self.get_object()
         user = request.user
 
-        # Tik kūrėjas arba organizatoriai gali redaguoti
-        if event.created_by != user and not event.organizers.filter(id=user.id).exists():
+        # Tikrinti ar vartotojas turi teisę redaguoti
+        is_creator = event.created_by == user
+        is_organizer = event.organizers.filter(id=user.id).exists()
+
+        if not (is_creator or is_organizer):
             raise PermissionDenied("Tik renginio kūrėjas arba organizatoriai gali redaguoti renginį.")
 
-        # Draudžiam keisti players ir organizers laukus, jeigu jie būtų pateikti:
+        # Gaukime pradinių duomenų kopiją
         mutable_data = request.data.copy()
+
+        # Visais atvejais neleidžiame redaguoti žaidėjų ir organizatorių sąrašo
         mutable_data.pop('players', None)
         mutable_data.pop('organizers', None)
 
-        # Naudojam serializerį su jau išvalytais duomenimis
+        # Jei vartotojas yra organizatorius, bet ne kūrėjas, ir tapo organizatoriumi per "pirmas prisijungęs" funkciją
+        if is_organizer and not is_creator and event.first_player_is_organizer:
+            # Leidžiame redaguoti tik pavadinimą, aprašymą ir viešumą
+            allowed_fields = ['title', 'description', 'visibility']
+
+            # Pašaliname visus kitus laukus
+            data_keys = list(mutable_data.keys())
+            for key in data_keys:
+                if key not in allowed_fields:
+                    mutable_data.pop(key, None)
+
+        # Naudojam serializerį su išvalytais duomenimis
         partial = kwargs.pop('partial', False)
         serializer = self.get_serializer(event, data=mutable_data, partial=partial)
         serializer.is_valid(raise_exception=True)

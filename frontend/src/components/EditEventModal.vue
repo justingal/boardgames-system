@@ -12,13 +12,16 @@
         <textarea v-model="form.description" class="w-full border rounded px-3 py-2 mb-3"></textarea>
 
         <label class="block mb-2">Adresas:</label>
-        <input v-model="form.address" class="w-full border rounded px-3 py-2 mb-3" />
+        <input v-model="form.address" class="w-full border rounded px-3 py-2 mb-3" :disabled="isLimitedOrganizer"
+               :class="{ 'bg-gray-100 cursor-not-allowed': isLimitedOrganizer }" />
 
         <label class="block mb-2">Stalo dydis:</label>
-        <select v-model="form.table_size" class="w-full border rounded px-3 py-2 mb-3">
+        <select v-model="form.table_size" class="w-full border rounded px-3 py-2 mb-3" :disabled="isLimitedOrganizer"
+                :class="{ 'bg-gray-100 cursor-not-allowed': isLimitedOrganizer }">
           <option value="S">Mažas</option>
           <option value="M">Vidutinis</option>
           <option value="L">Didelis</option>
+          <option value="XL">Labai didelis</option>
         </select>
 
         <label class="block mb-2">Viešumas:</label>
@@ -29,10 +32,18 @@
         </select>
 
         <label class="block mb-2">Pradžios laikas:</label>
-        <input type="datetime-local" v-model="form.start_time" class="w-full border rounded px-3 py-2 mb-3" />
+        <input type="datetime-local" v-model="form.start_time" class="w-full border rounded px-3 py-2 mb-3"
+               :disabled="isLimitedOrganizer" :class="{ 'bg-gray-100 cursor-not-allowed': isLimitedOrganizer }" />
 
         <label class="block mb-2">Pabaigos laikas:</label>
-        <input type="datetime-local" v-model="form.end_time" class="w-full border rounded px-3 py-2 mb-3" />
+        <input type="datetime-local" v-model="form.end_time" class="w-full border rounded px-3 py-2 mb-3"
+               :disabled="isLimitedOrganizer" :class="{ 'bg-gray-100 cursor-not-allowed': isLimitedOrganizer }" />
+      </div>
+
+      <!-- Informacija apie ribotą redagavimą -->
+      <div v-if="isLimitedOrganizer" class="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-700">
+        <p><strong>Pastaba:</strong> Kadangi tapote organizatoriumi per "pirmas prisijungęs tampa organizatoriumi" funkciją,
+          galite redaguoti tik renginio pavadinimą, aprašymą ir viešumą.</p>
       </div>
 
       <!-- Buttons -->
@@ -49,7 +60,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import axios from '@/api/axios'
 
 // Props
@@ -70,6 +81,34 @@ const form = ref({
   start_time: '',
   end_time: ''
 })
+
+// Nustatome dabartinio vartotojo duomenis
+const user = ref<any>(null)
+const fetchUser = async () => {
+  try {
+    const res = await axios.get('/users/me/')
+    user.value = res.data
+  } catch (err) {
+    console.error('Nepavyko gauti vartotojo informacijos:', err)
+  }
+}
+
+// Ar dabartinis vartotojas yra originalus renginio kūrėjas
+const isOriginalCreator = computed(() => {
+  if (!props.eventData || !user.value) return false;
+  return props.eventData.created_by === user.value.username;
+});
+
+// Ar dabartinis vartotojas yra organizatorius, kuris tapo juo per "pirmas prisijungęs" funkciją
+const isLimitedOrganizer = computed(() => {
+  if (!props.eventData || !user.value || isOriginalCreator.value) return false;
+
+  // Jei vartotojas yra organizatorius, bet ne kūrėjas, ir renginys turi nustatymą "pirmas prisijungęs tampa organizatoriumi"
+  const isOrganizer = props.eventData.organizers &&
+    props.eventData.organizers.some(org => org.id === user.value.id);
+
+  return isOrganizer && props.eventData.first_player_is_organizer;
+});
 
 watch(() => props.eventData, (newData) => {
   if (newData) {
@@ -107,21 +146,31 @@ const submitEdit = async () => {
     const localOffset = new Date().getTimezoneOffset();
 
     // Paruoškime duomenis siuntimui, įvertindami laiko juostos skirtumą
-    const formData = {...form.value};
+    let formData = {...form.value};
 
-    // Jei start_time ir end_time yra įvesti
-    if (formData.start_time) {
-      const startDate = new Date(formData.start_time);
-      formData.start_time = new Date(
-        startDate.getTime() - (localOffset * 60000)
-      ).toISOString();
-    }
+    // Jei vartotojas yra ribotas organizatorius, išvalome negalimus redaguoti laukus
+    if (isLimitedOrganizer.value) {
+      // Išsaugome visus laukus, bet backend'e bus apdoroti tik leistini
+      // Išvalyti laukai, kurie nebus siunčiami į serverį
+      delete formData.address;
+      delete formData.table_size;
+      delete formData.start_time;
+      delete formData.end_time;
+    } else {
+      // Jei start_time ir end_time yra įvesti
+      if (formData.start_time) {
+        const startDate = new Date(formData.start_time);
+        formData.start_time = new Date(
+          startDate.getTime() - (localOffset * 60000)
+        ).toISOString();
+      }
 
-    if (formData.end_time) {
-      const endDate = new Date(formData.end_time);
-      formData.end_time = new Date(
-        endDate.getTime() - (localOffset * 60000)
-      ).toISOString();
+      if (formData.end_time) {
+        const endDate = new Date(formData.end_time);
+        formData.end_time = new Date(
+          endDate.getTime() - (localOffset * 60000)
+        ).toISOString();
+      }
     }
 
     await axios.patch(`/events/${props.eventData.id}/`, formData)
@@ -132,4 +181,9 @@ const submitEdit = async () => {
     alert('❌ Klaida atnaujinant renginį.')
   }
 }
+
+// Gaukime vartotojo informaciją, kai komponentas bus sukurtas
+onMounted(() => {
+  fetchUser()
+})
 </script>
