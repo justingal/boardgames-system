@@ -50,7 +50,22 @@
             <div>
               <p class="text-sm text-gray-800"><span class="font-semibold">Adresas:</span> {{ event.address }}</p>
               <p class="text-sm text-gray-800"><span class="font-semibold">Stalo dydis:</span> {{ tableSizeLabels[event.table_size] }}</p>
-              <p class="text-sm text-gray-800"><span class="font-semibold">Organizatorius:</span> {{ event.created_by }}</p>
+
+              <!-- Žalia žyma, kai pirmas prisijungęs tampa organizatoriumi ir nėra žaidėjų -->
+              <div v-if="event.first_player_is_organizer && event.players_count === 0"
+                   class="mt-2 mb-2 py-1 px-3 bg-green-100 text-green-800 rounded-full inline-block text-sm font-medium">
+                🟢 Laisvas - narių 0 - tapk organizatoriumi!
+              </div>
+              <p v-else class="text-sm text-gray-800">
+                <span class="font-semibold">Dalyviai:</span> {{ event.players_count || 0 }}
+                <span v-if="event.organizers && event.organizers.length">
+                  (Organizatorius: {{ getOrganizerNames(event) }})
+                </span>
+                <span v-else>
+                  (Organizatorius: {{ event.created_by }})
+                </span>
+              </p>
+
               <p class="text-sm text-gray-800"><span class="font-semibold">Viešumas:</span> {{ privacyLabels[event.visibility] }}</p>
             </div>
 
@@ -74,7 +89,7 @@
                   @click="joinEvent(event.id)"
                   class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
                 >
-                  Prisijungti
+                  {{ event.first_player_is_organizer && event.players_count === 0 ? 'Tapti organizatoriumi' : 'Prisijungti' }}
                 </button>
               </div>
             </div>
@@ -205,6 +220,12 @@ const privacyLabels: Record<string, string> = {
   public: '🔓 Vieša – matoma visiems',
   protected: '🔐 Apsaugota – matoma, bet reikia leidimo jungtis',
   private: '🚫 Privati – nematoma, tik pakviestiesiems'
+}
+
+// Naujas metodas organizatorių vardams gauti
+const getOrganizerNames = (event: any) => {
+  if (!event.organizers || !event.organizers.length) return '';
+  return event.organizers.map((org: any) => org.username).join(', ');
 }
 
 const formatDateTime = (datetimeStr: string) => {
