@@ -10,9 +10,9 @@ class EventSerializer(serializers.ModelSerializer):
     games = serializers.PrimaryKeyRelatedField(queryset=Game.objects.all(), many=True, required=False)
     is_participant = serializers.SerializerMethodField()
     first_player_is_organizer = serializers.BooleanField()
-    # Replace actual_organizer with organizers
     organizers = UserSerializer(many=True, read_only=True)
     players = UserSerializer(many=True, read_only=True)
+    players_count = serializers.SerializerMethodField()  # Naujas laukas
 
     class Meta:
         model = Event
@@ -21,7 +21,7 @@ class EventSerializer(serializers.ModelSerializer):
             'start_time', 'end_time', 'is_repeating', 'repeat_days',
             'visibility', 'created_by', 'organization', 'organization_name',
             'games', 'players', 'created_at', 'is_participant',
-            'first_player_is_organizer', 'organizers'
+            'first_player_is_organizer', 'organizers', 'players_count'  # Pridėtas naujas laukas
         ]
         read_only_fields = [
             'players', 'created_by', 'organization',
@@ -33,6 +33,9 @@ class EventSerializer(serializers.ModelSerializer):
         if request and hasattr(request, 'user') and request.user.is_authenticated:
             return obj.players.filter(id=request.user.id).exists()
         return False
+
+    def get_players_count(self, obj):
+        return obj.players.count()  # Grąžiname žaidėjų skaičių
 
     def create(self, validated_data):
         games = validated_data.pop('games', [])

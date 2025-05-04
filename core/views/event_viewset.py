@@ -118,8 +118,7 @@ class EventViewSet(viewsets.ModelViewSet):
                         start_time = naive_start
                         end_time = naive_end
 
-                    # SVARBUS PAKEITIMAS: Pasikartojantys įvykiai turi turėti tą pačią first_player_is_organizer
-                    # reikšmę kaip ir pagrindinis įvykis
+                    # Sukuriame naują įvykį su teisinga first_player_is_organizer reikšme
                     repeated_event = Event.objects.create(
                         title=base_event.title,
                         description=base_event.description,
@@ -133,11 +132,11 @@ class EventViewSet(viewsets.ModelViewSet):
                         created_by=user,
                         organization=organization,
                         first_player_is_organizer=base_event.first_player_is_organizer,
-                        # SVARBU: Naudojame tą pačią reikšmę!
+                        # SVARBU: Perduodame tą pačią reikšmę
                     )
 
-                    # Jei first_player_is_organizer yra False, iš karto pridedame kūrėją kaip organizatorių
-                    # ir prie pasikartojančių įvykių
+                    # Jei first_player_is_organizer yra False, iš karto pridedame kūrėją
+                    # kaip organizatorių ir žaidėją prie pasikartojančių įvykių
                     if not base_event.first_player_is_organizer:
                         repeated_event.players.add(user)
                         repeated_event.organizers.add(user)

@@ -71,8 +71,19 @@
           <div>
             <p class="text-sm text-gray-800"><span class="font-semibold">Adresas:</span> {{ event.address }}</p>
             <p class="text-sm text-gray-800"><span class="font-semibold">Stalo dydis:</span> {{ tableSizeLabels[event.table_size] }}</p>
-            <p class="text-sm text-gray-800"><span class="font-semibold">Organizatorius: </span>
-              <span v-if="event.actual_organizer"> {{ event.actual_organizer }}<span v-if="event.first_player_is_organizer">(pirmas prisijungęs)</span></span><span v-else>{{ event.created_by }}</span></p>
+
+            <!-- Organizatoriaus informacija su žalia žyme, jei laisvas ir pirmas prisijungęs tampa organizatoriumi -->
+            <div v-if="event.first_player_is_organizer && event.players_count === 0"
+                 class="mt-2 mb-2 py-1 px-3 bg-green-100 text-green-800 rounded-full inline-block text-sm font-medium">
+              🟢 Laisvas - narių 0 - tapk organizatoriumi!
+            </div>
+            <p v-else class="text-sm text-gray-800">
+              <span class="font-semibold">Dalyviai:</span> {{ event.players_count }}
+              <span v-if="event.organizers && event.organizers.length">
+                (Organizatorius: {{ getOrganizerNames(event) }})
+              </span>
+            </p>
+
             <p class="text-sm text-gray-800"><span class="font-semibold">Viešumas:</span> {{ privacyLabels[event.visibility] }}</p>
           </div>
 
@@ -103,7 +114,7 @@
                 @click="joinEvent(event.id)"
                 class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
               >
-                Prisijungti
+                {{ event.first_player_is_organizer && event.players_count === 0 ? 'Tapti organizatoriumi' : 'Prisijungti' }}
               </button>
             </div>
           </div>
@@ -166,6 +177,11 @@ const privacyLabels = {
   private: '🚫 Privati – nematoma, tik pakviestiesiems'
 }
 
+// Naujas metodas organizatorių vardams gauti
+const getOrganizerNames = (event) => {
+  if (!event.organizers || !event.organizers.length) return '';
+  return event.organizers.map(org => org.username).join(', ');
+}
 
 const formatDateTime = (datetimeStr) => {
   if (!datetimeStr) return '';
@@ -196,7 +212,7 @@ const fetchEvents = async () => {
     if (filters.value.perks.length) params.perks = filters.value.perks.join(',')
 
     const response = await axios.get('/events/', {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {Authorization: `Bearer ${token}`},
       params
     })
 
@@ -209,7 +225,7 @@ const fetchEvents = async () => {
 const joinEvent = async (eventId) => {
   try {
     await axios.post(`/events/${eventId}/join/`, {}, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: {Authorization: `Bearer ${token}`}
     })
     alert('Prisijungei prie renginio!')
     fetchEvents()
