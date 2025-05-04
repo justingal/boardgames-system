@@ -20,6 +20,7 @@ from .views import (
 )
 from .views.bgg_views import ImportGameByBGGId
 from .views.event_game_import_view import EventGameImportView, EventAvailableGameListView
+from .views.event_grouped_list_view import GroupedEventsView
 from .views.event_importable_games_view import EventImportableGamesView
 from .views.event_manage import MakeOrganizerView, KickPlayerView, RemoveOrganizerView
 from .views.event_vote_view import EventGameVoteView, EventGameVoteResultsView
@@ -66,6 +67,9 @@ urlpatterns = [
     path('users/me/', CurrentUserView.as_view(), name='current-user'),
     path('organizations/<int:org_id>/remove-member/<int:user_id>/', remove_member, name='remove-member'),
     path('events/<int:pk>/importable-games/', EventImportableGamesView.as_view()),
+    path('organizations/<int:org_id>/grouped-events/', GroupedEventsView.as_view(), name='grouped-events'),
+    path('events/grouped/', GroupedEventsView.as_view(), name='grouped-events'),
+    path('events/grouped/<int:org_id>/', GroupedEventsView.as_view(), name='grouped-events-by-org'),
 ]
 
 router = DefaultRouter()

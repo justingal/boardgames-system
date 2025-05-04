@@ -11,16 +11,14 @@
       </button>
     </div>
 
+    <!-- Patobulinti filtrai -->
     <div class="bg-white shadow p-4 rounded-lg mb-6 flex flex-wrap gap-4 items-center">
-      <!-- Paieška -->
       <input
         v-model="filters.search"
         @input="fetchEvents"
         placeholder="Ieškoti pagal pavadinimą..."
         class="border border-gray-300 rounded px-3 py-2"
       />
-
-      <!-- Stalo dydis -->
       <select v-model="filters.table_size" @change="fetchEvents" class="border border-gray-300 rounded px-3 py-2">
         <option value="">Visi stalai</option>
         <option value="S">S</option>
@@ -29,15 +27,20 @@
         <option value="XL">XL</option>
       </select>
 
-      <!-- Pradžios data -->
       <input
         type="date"
         v-model="filters.start_date"
         @change="fetchEvents"
         class="border border-gray-300 rounded px-3 py-2"
+        placeholder="Renginio diena"
       />
 
-      <!-- Viešumas -->
+      <!-- Naujas mėnesių filtras -->
+      <select v-model="filters.month" @change="fetchEvents" class="border border-gray-300 rounded px-3 py-2">
+        <option value="">Visi mėnesiai</option>
+        <option v-for="month in months" :key="month.value" :value="month.value">{{ month.label }}</option>
+      </select>
+
       <select v-model="filters.visibility" @change="fetchEvents" class="border border-gray-300 rounded px-3 py-2">
         <option value="">Visi viešumai</option>
         <option value="public">Vieša</option>
@@ -45,109 +48,139 @@
         <option value="private">Privati</option>
       </select>
 
-      <!-- PERK'ai -->
-      <div class="flex flex-wrap gap-2">
-        <label v-for="perk in allPerks" :key="perk" class="flex items-center space-x-1 text-sm">
-          <input type="checkbox" :value="perk" v-model="filters.perks" @change="fetchEvents" />
-          <span>{{ perk }}</span>
-        </label>
-      </div>
+      <!-- Renginiai, kuriuose dalyvauju -->
+      <label class="flex items-center space-x-2 text-sm">
+        <input
+          type="checkbox"
+          v-model="filters.participating"
+          @change="fetchEvents"
+          class="rounded text-blue-600"
+        />
+        <span>Tik renginiai, kuriuose dalyvauju</span>
+      </label>
+
+      <details class="w-full md:w-auto">
+        <summary class="cursor-pointer flex items-center text-blue-600 font-medium">
+          <span class="inline-block w-4 h-4 mr-1">🔍</span> Papildomos galimybės
+        </summary>
+        <div class="mt-2 flex flex-wrap gap-2">
+          <label v-for="perk in allPerks" :key="perk" class="flex items-center space-x-1 text-sm">
+            <input type="checkbox" :value="perk" v-model="filters.perks" @change="fetchEvents" />
+            <span>{{ perk }}</span>
+          </label>
+        </div>
+      </details>
     </div>
 
-
+    <!-- Modalas -->
     <CreateEventModal :show="showModal" @close="showModal = false" @created="fetchEvents" />
+    <div v-if="pastEvents.length">
+      <div class="flex items-center cursor-pointer mb-2" @click="showPastEvents = !showPastEvents">
+        <h2 class="text-2xl font-bold text-gray-600">🕓 Praėję renginiai ({{ pastEvents.length }})</h2>
+        <button class="ml-2 text-gray-500">
+          <span v-if="showPastEvents">▲</span>
+          <span v-else>▼</span>
+        </button>
+      </div>
+      <EventList
+        v-if="showPastEvents"
+        :events="pastEvents"
+        past
+        @go-to="goToEvent"
+        @join="joinEvent"
+      />
+    </div>
+    <!-- Renginių skyriai -->
+    <div class="space-y-8">
+      <div v-if="todayEvents.length">
+        <h2 class="text-2xl font-bold text-blue-700">📅 Šiandienos renginiai ({{ todayEvents.length }})</h2>
+        <EventList
+          :events="todayEvents"
+          highlight="today"
+          @go-to="goToEvent"
+          @join="joinEvent"
+        />
+      </div>
 
-    <div class="space-y-4">
-      <div
-        v-for="event in events"
-        :key="event.id"
-        class="border rounded-lg p-4 bg-white shadow-sm"
-      >
-        <h2 class="text-xl font-bold mb-2">{{ event.title }}</h2>
-        <p class="text-gray-600 mb-2">{{ event.description }}</p>
+      <div v-if="upcomingEvents.length">
+        <h2 class="text-2xl font-bold text-green-700">🔜 Artėjantys renginiai ({{ upcomingEvents.length }})</h2>
+        <EventList
+          :events="upcomingEvents"
+          @go-to="goToEvent"
+          @join="joinEvent"
+        />
+      </div>
 
 
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <p class="text-sm text-gray-800"><span class="font-semibold">Adresas:</span> {{ event.address }}</p>
-            <p class="text-sm text-gray-800"><span class="font-semibold">Stalo dydis:</span> {{ tableSizeLabels[event.table_size] }}</p>
-
-            <!-- Organizatoriaus informacija su žalia žyme, jei laisvas ir pirmas prisijungęs tampa organizatoriumi -->
-            <div v-if="event.first_player_is_organizer && event.players_count === 0"
-                 class="mt-2 mb-2 py-1 px-3 bg-green-100 text-green-800 rounded-full inline-block text-sm font-medium">
-              🟢 Laisvas - narių 0 - tapk organizatoriumi!
-            </div>
-            <p v-else class="text-sm text-gray-800">
-              <span class="font-semibold">Dalyviai:</span> {{ event.players_count }}
-              <span v-if="event.organizers && event.organizers.length">
-                (Organizatorius: {{ getOrganizerNames(event) }})
-              </span>
-            </p>
-
-            <p class="text-sm text-gray-800"><span class="font-semibold">Viešumas:</span> {{ privacyLabels[event.visibility] }}</p>
-          </div>
-
-          <div>
-            <p class="text-sm text-gray-800">
-              <span class="font-semibold">Pradžia:</span>
-              {{ formatDateTime(event.start_time) }}
-            </p>
-            <p class="text-sm text-gray-800">
-              <span class="font-semibold">Pabaiga:</span>
-              {{ formatDateTime(event.end_time) }}
-            </p>
-            <p class="text-sm text-gray-800" v-if="event.perks">
-              <span class="font-semibold">Papildomos galimybės:</span> {{ event.perks }}
-            </p>
-
-            <!-- Prisijungimo ar perėjimo mygtukas -->
-            <div class="mt-4">
-              <button
-                v-if="event.is_participant"
-                @click="goToEvent(event.id)"
-                class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Eiti į renginį
-              </button>
-              <button
-                v-else
-                @click="joinEvent(event.id)"
-                class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-              >
-                {{ event.first_player_is_organizer && event.players_count === 0 ? 'Tapti organizatoriumi' : 'Prisijungti' }}
-              </button>
-            </div>
-          </div>
-        </div>
+      <div v-if="!todayEvents.length && !upcomingEvents.length && !pastEvents.length" class="text-center py-8 text-gray-500">
+        Nerasta renginių, atitinkančių pasirinktus filtrus.
       </div>
     </div>
   </div>
 </template>
 
+
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import axios from '../api/axios'
 import { jwtDecode } from 'jwt-decode'
 import CreateEventModal from '../components/CreateEventModal.vue'
-import router from "@/router/index.js";
+import router from "@/router/index.js"
+import EventList from "@/components/EventList.vue"
 
 const showModal = ref(false)
+const showPastEvents = ref(false) // Buvusių renginių rodymo kontrolė
 const events = ref([])
 
 const token = localStorage.getItem('access')
-let userRole = null
+let userRole = ref(null)
+
+const todayEvents = ref([])
+const upcomingEvents = ref([])
+const pastEvents = ref([])
 
 if (token) {
   const decoded = jwtDecode(token)
-  userRole = decoded.role
+  userRole.value = decoded.role
 }
 
+// Patobulinti filtrai su naujais laukais
 const filters = ref({
   search: '',
   table_size: '',
-  start_date: '',
   visibility: '',
-  perks: []
+  perks: [],
+  participating: false, // Naujas filtras - renginiai, kuriuose dalyvauju
+  month: getCurrentMonthValue() // Pradinis mėnuo - dabartinis
+})
+
+// Gaunama dabartinio mėnesio reikšmė
+function getCurrentMonthValue() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
+// Mėnesių sąrašas (±6 mėnesiai nuo dabartinio)
+const months = computed(() => {
+  const result = []
+  const now = new Date()
+
+  // Lietuviški mėnesių pavadinimai
+  const monthNames = [
+    'Sausis', 'Vasaris', 'Kovas', 'Balandis', 'Gegužė', 'Birželis',
+    'Liepa', 'Rugpjūtis', 'Rugsėjis', 'Spalis', 'Lapkritis', 'Gruodis'
+  ]
+
+  // Generuojame mėnesių sąrašą (2 atgal ir 9 į priekį)
+  for (let i = -2; i <= 9; i++) {
+    const month = new Date(now.getFullYear(), now.getMonth() + i, 1)
+    const value = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`
+    const label = `${monthNames[month.getMonth()]} ${month.getFullYear()}`
+
+    result.push({ value, label })
+  }
+
+  return result
 })
 
 const allPerks = [
@@ -163,7 +196,6 @@ const allPerks = [
   'Žaidimų biblioteka'
 ]
 
-
 const tableSizeLabels = {
   S: 'Mažas (2 žmonės) ~ 80x80cm',
   M: 'Vidutinis (4 žmonės) ~ 120x80cm',
@@ -177,51 +209,69 @@ const privacyLabels = {
   private: '🚫 Privati – nematoma, tik pakviestiesiems'
 }
 
-// Naujas metodas organizatorių vardams gauti
 const getOrganizerNames = (event) => {
-  if (!event.organizers || !event.organizers.length) return '';
-  return event.organizers.map(org => org.username).join(', ');
+  if (!event.organizers || !event.organizers.length) return ''
+  return event.organizers.map(org => org.username).join(', ')
 }
 
 const formatDateTime = (datetimeStr) => {
-  if (!datetimeStr) return '';
-
-  // Sukuriame datą iš ISO string
-  const date = new Date(datetimeStr);
-
-  // Formatuojame pagal vietinę laiko juostą
-  const options = {
+  if (!datetimeStr) return ''
+  const date = new Date(datetimeStr)
+  return date.toLocaleString('lt-LT', {
     dateStyle: 'medium',
     timeStyle: 'short',
-    timeZone: 'UTC'  // Tai leis rodyti laiką taip, kaip jis buvo įvestas
-  };
-
-  return date.toLocaleString('lt-LT', options);
+    timeZone: 'UTC'
+  })
 }
+
+// Navigacija į renginio puslapį
 const goToEvent = (eventId) => {
   router.push(`/events/${eventId}`)
 }
+
+// Renginių gavimas
 const fetchEvents = async () => {
   try {
     const params = {}
 
     if (filters.value.search) params.search = filters.value.search
     if (filters.value.table_size) params.table_size = filters.value.table_size
-    if (filters.value.start_date) params.start_date = filters.value.start_date
     if (filters.value.visibility) params.visibility = filters.value.visibility
     if (filters.value.perks.length) params.perks = filters.value.perks.join(',')
 
-    const response = await axios.get('/events/', {
-      headers: {Authorization: `Bearer ${token}`},
+    if (filters.value.start_date) {
+      params.start_date = filters.value.start_date
+      // Jei pasirinkta konkreti diena, mėnesio filtrą ignoruojame
+      delete params.year
+      delete params.month
+    }
+    else if (filters.value.month) {
+      const [year, month] = filters.value.month.split('-')
+      params.year = year
+      params.month = month
+    }
+
+    // Nauji filtrai - svarbu perduoti kaip boolean reikšmę tekstiniame parametre
+    params.is_participant = filters.value.participating ? 'true' : 'false'
+
+
+    // Change the endpoint to use grouped-events
+    const response = await axios.get('/events/grouped/', {
+      headers: { Authorization: `Bearer ${token}` },
       params
     })
 
-    // Surūšiuoti pagal start_time
-    events.value = response.data.sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
+    // Update to work with the new response format
+    todayEvents.value = response.data.today || []
+    upcomingEvents.value = response.data.upcoming || []
+    pastEvents.value = response.data.past || []
+
   } catch (error) {
     console.error('Nepavyko gauti renginių:', error)
   }
 }
+
+// Prisijungimas prie renginio
 const joinEvent = async (eventId) => {
   try {
     await axios.post(`/events/${eventId}/join/`, {}, {
@@ -234,6 +284,7 @@ const joinEvent = async (eventId) => {
   }
 }
 
-
-onMounted(fetchEvents)
+onMounted(() => {
+  fetchEvents()
+})
 </script>
