@@ -20,7 +20,7 @@
           🧑
         </button>
         <div class="absolute right-0 mt-2 w-40 bg-white text-black rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
-          <RouterLink to="/profile" class="block px-4 py-2 hover:bg-gray-200">Profilis</RouterLink>
+          <RouterLink to="/profile"> <button class="block px-4 py-2 hover:bg-gray-200">Profilis</button></RouterLink>
           <RouterLink to="/settings" class="block px-4 py-2 hover:bg-gray-200">Nustatymai</RouterLink>
           <button @click="logout" class="block w-full text-left px-4 py-2 hover:bg-gray-200 text-red-600 font-medium">Atsijungti</button>
         </div>

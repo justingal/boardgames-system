@@ -7,6 +7,7 @@ import OrganizerRegisterView from '@/views/OrganizerRegisterView.vue'
 import EventListView from "@/views/EventListView.vue";
 import GameCollectionView from "@/views/GameCollectionView.vue";
 import EventDetailView from "@/views/EventDetailView.vue";
+import ProfilePage from "@/views/ProfilePage.vue";
 
 // Galimi būsimi view
 // import ProfileView from "@/views/ProfileView.vue"
@@ -22,12 +23,15 @@ const routes = [
   { path: '/events', name: 'events', component: EventListView },
   { path: '/events/:id', name: 'event-detail', component: EventDetailView },
   { path: '/collection', name: 'Kolekcija', component: GameCollectionView },
-  { path: '/organizations/:id', name: 'OrganizationDetail', component: () => import('../views/OrganizationDetailView.vue')
-  },
+  { path: '/organizations/:id', name: 'OrganizationDetail', component: () => import('../views/OrganizationDetailView.vue')},
+  {path: '/profile', name: 'Profile', component: ProfilePage},
   {
     path: '/:pathMatch(.*)*',
     redirect: '/'
-  }
+  },
+
+
+
 ]
 
 const router = createRouter({

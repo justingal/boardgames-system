@@ -6,3 +6,4 @@ from .event_serializer import EventSerializer
 from .game_collection_serializer import GameCollectionSerializer
 from .event_available_game_serializer import EventAvailableGameSerializer
 from .user_game_vote_serializer import UserGameVoteSerializer
+from .user_profile_full_serializer import UserProfileFullSerializer, UserFullSerializer, OrganizationSimpleSerializer

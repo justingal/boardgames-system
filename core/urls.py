@@ -28,6 +28,7 @@ from .views.game_collection_bgg_import import AddGameFromSearchView
 from .views.game_collection_csv_import import GameCollectionCSVImportView
 from .views.game_collection_delete import RemoveGameFromCollectionView
 from .views.organization_views import UserOrganizationsView
+from .views.user_profile_view import UserFullProfileView
 from .views.user_views import CurrentUserView
 
 urlpatterns = [
@@ -70,6 +71,8 @@ urlpatterns = [
     path('organizations/<int:org_id>/grouped-events/', GroupedEventsView.as_view(), name='grouped-events'),
     path('events/grouped/', GroupedEventsView.as_view(), name='grouped-events'),
     path('events/grouped/<int:org_id>/', GroupedEventsView.as_view(), name='grouped-events-by-org'),
+    path('users/me/full/', UserFullProfileView.as_view(), name='user-full-profile'),
+
 ]
 
 router = DefaultRouter()
