@@ -88,6 +88,7 @@
         past
         @go-to="goToEvent"
         @join="joinEvent"
+        @deleted="fetchEvents"
       />
     </div>
     <!-- Renginių skyriai -->
@@ -99,6 +100,7 @@
           highlight="today"
           @go-to="goToEvent"
           @join="joinEvent"
+          @deleted="fetchEvents"
         />
       </div>
 
@@ -108,6 +110,7 @@
           :events="upcomingEvents"
           @go-to="goToEvent"
           @join="joinEvent"
+          @deleted="fetchEvents"
         />
       </div>
 

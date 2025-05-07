@@ -18,6 +18,17 @@ class EventViewSet(viewsets.ModelViewSet):
         context['request'] = self.request
         return context
 
+    def destroy(self, request, *args, **kwargs):
+        event = self.get_object()
+
+        # Tikrina ar naudotojas yra tarp organizatorių
+        if request.user not in event.organizers.all():
+            return Response({'detail': 'Jūs neturite teisės ištrinti šio renginio.'},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        event.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     def get_queryset(self):
         queryset = Event.objects.all()
         perks = self.request.query_params.get('perks')

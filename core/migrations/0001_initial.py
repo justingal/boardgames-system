@@ -68,7 +68,7 @@ class Migration(migrations.Migration):
                 ('title', models.CharField(max_length=100)),
                 ('description', models.TextField(blank=True)),
                 ('address', models.CharField(max_length=255)),
-                ('table_size', models.CharField(choices=[('S', 'Mažas'), ('M', 'Vidutinis'), ('L', 'Didelis')], default='M', max_length=1)),
+                ('table_size', models.CharField(choices=[('S', 'Mažas'), ('M', 'Vidutinis'), ('L', 'Didelis'), ('XL', 'Labai didelis')], default='M', max_length=1)),
                 ('perks', models.TextField(blank=True)),
                 ('start_time', models.DateTimeField()),
                 ('end_time', models.DateTimeField()),

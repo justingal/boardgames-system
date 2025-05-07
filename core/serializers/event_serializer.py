@@ -13,6 +13,8 @@ class EventSerializer(serializers.ModelSerializer):
     organizers = UserSerializer(many=True, read_only=True)
     players = UserSerializer(many=True, read_only=True)
     players_count = serializers.SerializerMethodField()  # Naujas laukas
+    is_organizer = serializers.SerializerMethodField()
+
 
     class Meta:
         model = Event
@@ -21,7 +23,7 @@ class EventSerializer(serializers.ModelSerializer):
             'start_time', 'end_time', 'is_repeating', 'repeat_days',
             'visibility', 'created_by', 'organization', 'organization_name',
             'games', 'players', 'created_at', 'is_participant',
-            'first_player_is_organizer', 'organizers', 'players_count'  # Pridėtas naujas laukas
+            'first_player_is_organizer', 'organizers', 'players_count', 'is_organizer'  # Pridėtas naujas laukas
         ]
         read_only_fields = [
             'players', 'created_by', 'organization',
@@ -32,6 +34,12 @@ class EventSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request and hasattr(request, 'user') and request.user.is_authenticated:
             return obj.players.filter(id=request.user.id).exists()
+        return False
+
+    def get_is_organizer(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.organizers.filter(id=request.user.id).exists()
         return False
 
     def get_players_count(self, obj):
