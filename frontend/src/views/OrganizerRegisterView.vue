@@ -34,7 +34,7 @@
       <select v-model="form.organization.category" required
               class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3">
         <option disabled value="">-- Pasirinkite kategoriją --</option>
-        <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
+        <option v-for="cat in categories" :key="cat.value" :value="cat.value">{{ cat.name }}</option>
       </select>
 
       <select v-model="form.organization.city" required
@@ -61,17 +61,27 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-const categories = ['Board games', 'D&D', 'Card games', 'Miniatures', 'Social deduction']
+// Hardcoded categories matching backend CATEGORY_CHOICES
+const categories = [
+  { value: 'classic_strategic', name: 'Klasikiniai & Strateginiai' },
+  { value: 'rpg', name: 'RPG (Role-playing games)' },
+  { value: 'miniature_games', name: 'Miniatiūrų žaidimai' },
+  { value: 'party_social', name: 'Vakarėlių ir socialiniai žaidimai' },
+  { value: 'children_games', name: 'Vaikų žaidimai' },
+  { value: 'educational', name: 'Edukaciniai žaidimai' }
+]
 
 const form = ref({
   username: '',
   email: '',
   password: '',
+  first_name: '',
+  last_name: '',
   organization: {
     name: '',
     description: '',
     privacy: 'protected',
-    category: '',
+    category: 'classic_strategic',
     city: 'vilnius',
   }
 })

@@ -14,18 +14,28 @@ class GameCategorySerializer(serializers.ModelSerializer):
 class OrganizationSerializer(serializers.ModelSerializer):
     created_by = serializers.ReadOnlyField(source='created_by.username')
     members = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    categories = GameCategorySerializer(many=True)
+    # Make categories read-only since we're not using the M2M relationship anymore
+    categories = GameCategorySerializer(many=True, read_only=True)
+    # Add the new single category field
+    category = serializers.CharField()
     is_member = serializers.SerializerMethodField()
     city = serializers.CharField()
-    events = EventSerializer(many=True, read_only=True)  # <-- pridėti šitą
+    events = EventSerializer(many=True, read_only=True)
+
+    # Add category display name
+    category_display = serializers.SerializerMethodField()
 
     class Meta:
         model = Organization
         fields = [
             'id', 'name', 'description', 'created_by',
-            'members', 'categories',  'privacy', 'created_at',
-            'is_member', 'city', 'events'
+            'members', 'categories', 'category', 'category_display',
+            'privacy', 'created_at', 'is_member', 'city', 'events'
         ]
+
+    def get_category_display(self, obj):
+        """Get the display name for the category"""
+        return dict(Organization.CATEGORY_CHOICES).get(obj.category, '')
 
     def get_is_member(self, obj):
         request = self.context.get('request')

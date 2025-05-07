@@ -17,7 +17,6 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 
 
-
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def remove_member(request, org_id, user_id):
@@ -44,7 +43,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
     serializer_class = OrganizationSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ['privacy', 'categories', 'city']
+    filterset_fields = ['privacy', 'category', 'city']  # Updated to use 'category' instead of 'categories'
     search_fields = ['name']
 
     def update(self, request, *args, **kwargs):
@@ -56,12 +55,6 @@ class OrganizationViewSet(viewsets.ModelViewSet):
 
         partial = kwargs.pop('partial', True)  # PATCH by default
         data = request.data.copy()
-
-        # Apdorojam kategoriją
-        category_name = data.pop('category_name', None)
-        if category_name:
-            category, _ = GameCategory.objects.get_or_create(name=category_name)
-            instance.categories.set([category])
 
         serializer = self.get_serializer(instance, data=data, partial=partial)
         serializer.is_valid(raise_exception=True)
@@ -132,5 +125,3 @@ class OrganizationMembersView(ListAPIView):
         return User.objects.filter(
             id__in=Membership.objects.filter(organization_id=org_id).values_list('user_id', flat=True)
         )
-
-

@@ -23,7 +23,8 @@
           <p><strong>Narių skaičius:</strong> {{ organization.members.length }}</p>
           <p><strong>Viešumo tipas:</strong> {{ privacyLabels[organization.privacy] }}</p>
           <p><strong>Grupė: </strong>
-            <span v-if="organization.categories.length > 0">
+            <span v-if="organization.category">{{ getCategoryName(organization.category) }}</span>
+            <span v-else-if="organization.categories && organization.categories.length > 0">
               {{ organization.categories.map(cat => cat.name).join(', ') }}
             </span>
             <span v-else class="italic text-gray-400">Nenurodyta</span>
@@ -165,6 +166,21 @@ const token = localStorage.getItem('access')
 const organization = ref<any>(null)
 const members = ref<any[]>([])
 const user = ref<any>(null)
+
+// Hardcoded categories matching backend CATEGORY_CHOICES
+const categoryOptions = [
+  { value: 'classic_strategic', name: 'Klasikiniai & Strateginiai' },
+  { value: 'rpg', name: 'RPG (Role-playing games)' },
+  { value: 'miniature_games', name: 'Miniatiūrų žaidimai' },
+  { value: 'party_social', name: 'Vakarėlių ir socialiniai žaidimai' },
+  { value: 'children_games', name: 'Vaikų žaidimai' },
+  { value: 'educational', name: 'Edukaciniai žaidimai' }
+]
+
+const getCategoryName = (categoryValue: string) => {
+  const category = categoryOptions.find(cat => cat.value === categoryValue)
+  return category ? category.name : categoryValue
+}
 
 const fetchOrganization = async () => {
   const orgId = route.params.id

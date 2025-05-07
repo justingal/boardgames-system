@@ -45,7 +45,7 @@
 
       <select v-model="filters.category" @change="fetchOrganizations" class="border border-gray-300 rounded px-3 py-2">
         <option value="">Visos grupės</option>
-        <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+        <option v-for="cat in categoryOptions" :key="cat.value" :value="cat.value">{{ cat.name }}</option>
       </select>
     </div>
 
@@ -69,12 +69,12 @@
           <p class="text-sm text-gray-500">Miestas: {{ org.city }}</p>
           <p class="text-sm text-gray-500">
             Kategorija:
-            <span v-if="org.categories && org.categories.length > 0">
-    {{ org.categories.map(cat => cat.name).join(', ') }}
-  </span>
+            <span v-if="org.category">{{ getCategoryName(org.category) }}</span>
+            <span v-else-if="org.categories && org.categories.length > 0">
+              {{ org.categories.map(cat => cat.name).join(', ') }}
+            </span>
             <span v-else>–</span>
           </p>
-
         </div>
 
         <div class="ml-4">
@@ -92,23 +92,30 @@
           >
             Prisijungti
           </button>
+          <button
+            v-if="user?.username === org.created_by"
+            @click="deleteOrganization(org.id)"
+            class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+          >
+            🗑️ Ištrinti organizaciją
+          </button>
         </div>
       </div>
     </div>
   </div>
 </template>
-
 <script setup>
-import {ref, onMounted, computed} from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import axios from '../api/axios'
-import {jwtDecode} from 'jwt-decode'
+import { jwtDecode } from 'jwt-decode'
 import CreateOrganizationModal from '../components/CreateOrganizationModal.vue'
-import {useRouter} from 'vue-router'
+import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
 const showModal = ref(false)
 const organizations = ref([])
+const user = ref(null)
 const filters = ref({
   search: '',
   privacy: '',
@@ -123,60 +130,66 @@ const privacyLabels = {
   private: '🚫 Privati – nematoma, tik pakviestiesiems'
 }
 
-const categories = ref([
-  'Board games',
-  'D&D',
-  'Card games',
-  'Miniatures',
-  'Social deduction'
-])
+// Hardcoded categories to match backend CATEGORY_CHOICES
+const categoryOptions = [
+  { value: 'classic_strategic', name: 'Klasikiniai & Strateginiai' },
+  { value: 'rpg', name: 'RPG (Role-playing games)' },
+  { value: 'miniature_games', name: 'Miniatiūrų žaidimai' },
+  { value: 'party_social', name: 'Vakarėlių ir socialiniai žaidimai' },
+  { value: 'children_games', name: 'Vaikų žaidimai' },
+  { value: 'educational', name: 'Edukaciniai žaidimai' }
+]
+
+const getCategoryName = (categoryValue) => {
+  const category = categoryOptions.find(cat => cat.value === categoryValue)
+  return category ? category.name : categoryValue
+}
 
 const userRole = ref(null)
 const token = localStorage.getItem('access')
 if (token) {
   try {
     const decoded = jwtDecode(token)
-    // Įvairūs būdai, kaip role gali būti saugoma JWT
     userRole.value = decoded.role ||
       (decoded.groups && decoded.groups.includes('organizer') ? 'organizer' : 'user') ||
       (decoded.profile?.role) ||
       'user'
-    console.log('Detected role:', userRole.value)
   } catch (error) {
     console.error('Klaida dekoduojant token:', error)
     userRole.value = 'user'
   }
 }
 
+const fetchUser = async () => {
+  try {
+    const res = await axios.get('/users/me/', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    user.value = res.data
+  } catch (error) {
+    console.error('Nepavyko gauti vartotojo informacijos:', error)
+  }
+}
+
 const filteredOrganizations = computed(() => {
   let result = [...organizations.value]
 
-  // Organizatoriai jau gauna tik savo organizacijas iš API
-  // Kitiems vartotojams filtruojame tik jei reikia
   if (userRole.value !== 'organizer' && filters.value.onlyMine) {
     result = result.filter(o => o.is_member)
   }
 
-  // Rūšiuojame, kad narystės būtų viršuje
   result.sort((a, b) => (b.is_member === true) - (a.is_member === true))
 
   return result
 })
-const fetchCategories = async () => {
-  try {
-    const res = await axios.get('/categories/')
-    categories.value = res.data
-  } catch (err) {
-    console.error('Nepavyko gauti kategorijų:', err)
-  }
-}
+
 const fetchOrganizations = async () => {
   try {
     const params = {}
 
     if (filters.value.search) params.search = filters.value.search
     if (filters.value.privacy) params.privacy = filters.value.privacy
-    if (filters.value.category) params.categories = filters.value.category
+    if (filters.value.category) params.category = filters.value.category
     if (filters.value.city) params.city = filters.value.city
 
     const response = await axios.get('/organizations/', {
@@ -203,13 +216,26 @@ const joinOrganization = async (orgId) => {
   }
 }
 
+const deleteOrganization = async (orgId) => {
+  if (!confirm('Ar tikrai nori ištrinti šią organizaciją?')) return
+  try {
+    await axios.delete(`/organizations/${orgId}/`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    alert('✅ Organizacija ištrinta.')
+    fetchOrganizations()
+  } catch (error) {
+    console.error('Klaida trinant organizaciją:', error)
+    alert('❌ Nepavyko ištrinti organizacijos.')
+  }
+}
+
 const goToOrganization = (orgId) => {
   router.push(`/organizations/${orgId}`)
 }
 
 onMounted(() => {
-  fetchCategories()
   fetchOrganizations()
+  fetchUser()
 })
-
 </script>
