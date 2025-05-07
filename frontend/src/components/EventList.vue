@@ -43,10 +43,11 @@
           <p class="text-sm text-gray-800" v-if="event.perks">
             <span class="font-semibold">Papildomos galimybės:</span> {{ event.perks }}
           </p>
+
           <button
-            v-if="event.is_organizer"
+            v-if="event.created_by === user?.username"
             @click="deleteEvent(event.id)"
-            class="ml-2 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+            class="ml-2 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 mt-2"
           >
             🗑️ Ištrinti
           </button>
@@ -66,7 +67,6 @@
             >
               {{ event.first_player_is_organizer && event.players_count === 0 ? 'Tapti organizatoriumi' : 'Prisijungti' }}
             </button>
-
           </div>
         </div>
       </div>
@@ -75,36 +75,51 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
+import axios from '../api/axios'
 const props = defineProps({
   events: Array,
-  highlight: String, // 'today' jei šiandienos renginiai
+  highlight: String,
   past: Boolean
 })
-import axios from '../api/axios'
-const token = localStorage.getItem('access')
 
-const emit = defineEmits(['go-to', 'join'])
-const tableSizeLabels = {
-  S: 'Mažas (2 žmonės) ~ 80x80cm',
-  M: 'Vidutinis (4 žmonės) ~ 120x80cm',
-  L: 'Didelis (6–8 žmonės) ~ 180x90cm',
-  XL: 'Labai didelis (8–10 žmonių) ~ 200x100cm'
+const emit = defineEmits(['go-to', 'join', 'deleted'])
+const token = localStorage.getItem('access')
+const user = ref(null)
+
+// Fetch user once (creator check)
+const fetchUser = async () => {
+  try {
+    const res = await axios.get('/users/me/', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    user.value = res.data
+  } catch (err) {
+    console.error('Nepavyko gauti vartotojo informacijos:', err)
+  }
 }
+fetchUser()
+
 const deleteEvent = async (eventId) => {
   if (!confirm('Ar tikrai nori ištrinti šį renginį?')) return
-
   try {
     await axios.delete(`/events/${eventId}/`, {
       headers: { Authorization: `Bearer ${token}` }
     })
     alert('Renginys sėkmingai ištrintas!')
-    emit('deleted', eventId) // ← čia įdėk emit
+    emit('deleted', eventId)
   } catch (error) {
     console.error('Klaida trinant renginį:', error)
     alert('Nepavyko ištrinti renginio.')
   }
 }
 
+const tableSizeLabels = {
+  S: 'Mažas (2 žmonės) ~ 80x80cm',
+  M: 'Vidutinis (4 žmonės) ~ 120x80cm',
+  L: 'Didelis (6–8 žmonės) ~ 180x90cm',
+  XL: 'Labai didelis (8–10 žmonių) ~ 200x100cm'
+}
 
 const privacyLabels = {
   public: '🔓 Vieša – matoma visiems',

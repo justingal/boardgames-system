@@ -9,6 +9,15 @@
       >
         ✏️ Redaguoti renginį
       </button>
+      <button
+        v-if="userIsOrgCreator"
+        @click="deleteEvent"
+        class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 mt-4"
+      >
+        🗑️ Ištrinti renginį
+      </button>
+
+
 
       <div class="mb-6">
 
@@ -151,7 +160,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router' // <- BŪTINA!
 import axios from '@/api/axios'
 import EditEventModal from '@/components/EditEventModal.vue'
 import ImportGamesModal from '@/components/ImportGamesModal.vue'
@@ -159,7 +168,8 @@ import EventVoteModal from "@/components/EventVoteModal.vue";
 
 const showVoteModal = ref(false)
 const showImportModal = ref(false)
-
+const router = useRouter() // <- PRIDĖTA!
+const token = localStorage.getItem('access') // <- PRIDĖTA!
 
 const route = useRoute()
 const event = ref<any>(null)
@@ -204,6 +214,11 @@ const fetchEvent = async () => {
     messageClass.value = 'bg-red-100 text-red-800'
   }
 }
+const userIsOrgCreator = computed(() => {
+  return event.value?.organization_creator === user.value?.username
+})
+
+
 
 const user = ref<any>(null)
 
@@ -269,6 +284,22 @@ const makeOrganizer = async (userId: number) => {
     console.error('Klaida suteikiant organizatoriaus teises:', err)
     message.value = '❌ Klaida suteikiant organizatoriaus teises.'
     messageClass.value = 'bg-red-100 text-red-800'
+  }
+}
+
+
+
+const deleteEvent = async () => {
+  if (!confirm('Ar tikrai nori ištrinti šį renginį?')) return
+  try {
+    await axios.delete(`/events/${event.value.id}/`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    alert('✅ Renginys ištrintas.')
+    router.push('/events') // arba `/organizations/${event.value.organization}`
+  } catch (error) {
+    console.error('Nepavyko ištrinti renginio:', error)
+    alert('❌ Klaida trinant renginį.')
   }
 }
 

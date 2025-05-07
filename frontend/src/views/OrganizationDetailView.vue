@@ -1,3 +1,4 @@
+<!-- OrganizacijosRenginiai.vue -->
 <template>
   <div class="max-w-5xl mx-auto px-4 py-6">
     <div v-if="!organization" class="text-center text-gray-500">Kraunama...</div>
@@ -51,7 +52,6 @@
               <p class="text-sm text-gray-800"><span class="font-semibold">Adresas:</span> {{ event.address }}</p>
               <p class="text-sm text-gray-800"><span class="font-semibold">Stalo dydis:</span> {{ tableSizeLabels[event.table_size] }}</p>
 
-              <!-- Žalia žyma, kai pirmas prisijungęs tampa organizatoriumi ir nėra žaidėjų -->
               <div v-if="event.first_player_is_organizer && event.players_count === 0"
                    class="mt-2 mb-2 py-1 px-3 bg-green-100 text-green-800 rounded-full inline-block text-sm font-medium">
                 🟢 Laisvas - narių 0 - tapk organizatoriumi!
@@ -76,7 +76,7 @@
                 <span class="font-semibold">Papildomos galimybės:</span> {{ event.perks }}
               </p>
 
-              <div class="mt-4">
+              <div class="mt-4 flex gap-2">
                 <button
                   v-if="event.is_participant"
                   @click="goToEvent(event.id)"
@@ -90,6 +90,15 @@
                   class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
                 >
                   {{ event.first_player_is_organizer && event.players_count === 0 ? 'Tapti organizatoriumi' : 'Prisijungti' }}
+                </button>
+
+                <!-- Trinimo mygtukas matomas TIK jei esi organizacijos kūrėjas -->
+                <button
+                  v-if="userIsCreator"
+                  @click="deleteEvent(event.id)"
+                  class="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                >
+                  🗑️ Ištrinti
                 </button>
               </div>
             </div>
@@ -114,7 +123,6 @@
             <div>
               <p class="font-medium text-gray-800">{{ member.username }}</p>
 
-              <!-- Jei prisijungęs vartotojas yra organizacijos sukūrėjas, rodo informaciją apie visus -->
               <div v-if="userIsCreator">
                 <p class="text-sm text-gray-500">{{ member.first_name }} {{ member.last_name }}</p>
                 <p class="text-sm text-gray-400">{{ member.email }}</p>
@@ -134,6 +142,7 @@
       </ul>
     </div>
   </div>
+
   <OrganizationEditModal
     v-if="organization"
     :visible="showEditModal"
@@ -142,6 +151,7 @@
     @updated="handleUpdated"
   />
 </template>
+
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -150,64 +160,92 @@ import axios from '../api/axios'
 
 const route = useRoute()
 const router = useRouter()
-
 const token = localStorage.getItem('access')
+
 const organization = ref<any>(null)
 const members = ref<any[]>([])
 const user = ref<any>(null)
 
 const fetchOrganization = async () => {
-  try {
-    const orgId = route.params.id
-    const response = await axios.get(`/organizations/${orgId}/`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    organization.value = response.data
-  } catch (error) {
-    console.error('Nepavyko gauti organizacijos:', error)
-  }
+  const orgId = route.params.id
+  const response = await axios.get(`/organizations/${orgId}/`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+  organization.value = response.data
 }
 
 const fetchMembers = async () => {
-  try {
-    const orgId = route.params.id
-    const response = await axios.get(`/organizations/${orgId}/members/`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    members.value = response.data
-  } catch (error) {
-    console.error('Nepavyko gauti organizacijos narių:', error)
-  }
+  const orgId = route.params.id
+  const response = await axios.get(`/organizations/${orgId}/members/`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+  members.value = response.data
 }
 
 const fetchUser = async () => {
-  try {
-    const res = await axios.get('/users/me/', {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    user.value = res.data
-  } catch (err) {
-    console.error('Nepavyko gauti vartotojo informacijos:', err)
-  }
+  const res = await axios.get('/users/me/', {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+  user.value = res.data
 }
 
+const userIsCreator = computed(() => {
+  return organization.value && user.value && organization.value.created_by === user.value.username
+})
+
 const joinEvent = async (eventId: number) => {
-  try {
-    await axios.post(`/events/${eventId}/join/`, {}, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    alert('Prisijungei prie renginio!')
-    fetchOrganization()
-  } catch (error) {
-    console.error('Nepavyko prisijungti prie renginio:', error)
-  }
+  await axios.post(`/events/${eventId}/join/`, {}, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+  fetchOrganization()
+}
+
+const deleteEvent = async (eventId: number) => {
+  if (!confirm('Ar tikrai nori ištrinti šį renginį?')) return
+  await axios.delete(`/events/${eventId}/`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+  fetchOrganization()
 }
 
 const goToEvent = (eventId: number) => {
   router.push(`/events/${eventId}`)
 }
 
-const userRole = computed(() => user.value?.role ?? null)
+const getOrganizerNames = (event: any) => {
+  return event.organizers?.map((org: any) => org.username).join(', ') || ''
+}
+
+const formatDateTime = (datetimeStr: string) => {
+  return new Date(datetimeStr).toLocaleString('lt-LT', {
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  })
+}
+
+const canKick = (memberId: number) => {
+  return userIsCreator.value && user.value?.id !== memberId
+}
+
+const kickMember = async (memberId: number) => {
+  const orgId = route.params.id
+  await axios.delete(`/organizations/${orgId}/remove-member/${memberId}/`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+  fetchMembers()
+}
+
+const showEditModal = ref(false)
+const handleUpdated = async () => {
+  await fetchOrganization()
+  showEditModal.value = false
+}
+
+onMounted(() => {
+  fetchOrganization()
+  fetchMembers()
+  fetchUser()
+})
 
 const tableSizeLabels: Record<string, string> = {
   S: 'Mažas (2 žmonės) ~ 80x80cm',
@@ -221,52 +259,4 @@ const privacyLabels: Record<string, string> = {
   protected: '🔐 Apsaugota – matoma, bet reikia leidimo jungtis',
   private: '🚫 Privati – nematoma, tik pakviestiesiems'
 }
-
-// Naujas metodas organizatorių vardams gauti
-const getOrganizerNames = (event: any) => {
-  if (!event.organizers || !event.organizers.length) return '';
-  return event.organizers.map((org: any) => org.username).join(', ');
-}
-
-const formatDateTime = (datetimeStr: string) => {
-  const options = { dateStyle: 'medium', timeStyle: 'short' }
-  return new Date(datetimeStr).toLocaleString('lt-LT', options)
-}
-
-const canKick = (memberId: number) => {
-  return userIsCreator.value && user.value && user.value.id !== memberId
-}
-
-const kickMember = async (memberId: number) => {
-  try {
-    const orgId = route.params.id
-    await axios.delete(`/organizations/${orgId}/remove-member/${memberId}/`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    alert('✅ Narys pašalintas iš organizacijos.')
-    await fetchMembers()
-  } catch (error) {
-    console.error('Klaida šalinant narį:', error)
-    alert('❌ Nepavyko pašalinti nario.')
-  }
-}
-
-// Ar prisijungęs vartotojas yra šios organizacijos sukūrėjas
-const userIsCreator = computed(() => {
-  if (!organization.value || !user.value) return false
-  return organization.value.created_by === user.value.username
-})
-
-const showEditModal = ref(false)
-
-const handleUpdated = async () => {
-  await fetchOrganization()
-  showEditModal.value = false
-}
-
-onMounted(() => {
-  fetchOrganization()
-  fetchMembers()
-  fetchUser()
-})
 </script>

@@ -22,7 +22,7 @@ class EventViewSet(viewsets.ModelViewSet):
         event = self.get_object()
 
         # Tikrina ar naudotojas yra tarp organizatorių
-        if request.user not in event.organizers.all():
+        if event.organization.created_by != request.user:
             return Response({'detail': 'Jūs neturite teisės ištrinti šio renginio.'},
                             status=status.HTTP_403_FORBIDDEN)
 
