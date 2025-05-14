@@ -1,6 +1,7 @@
 from rest_framework.test import APITestCase
 from django.contrib.auth.models import User
-from core.models import Game
+from core.models import Game, GameCollection
+
 
 class AddGameToCollectionTest(APITestCase):
     def setUp(self):
@@ -24,5 +25,7 @@ class AddGameToCollectionTest(APITestCase):
 
         self.assertIn(response.status_code, [200, 201])
         self.assertTrue(Game.objects.filter(bgg_id=123456).exists())
+
         game = Game.objects.get(bgg_id=123456)
-        self.assertIn(self.user, game.usercollection_set.first().users.all())
+        self.assertTrue(GameCollection.objects.filter(user=self.user, game=game).exists())
+
