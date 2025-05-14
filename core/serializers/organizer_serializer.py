@@ -1,6 +1,10 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from core.models import Organization, UserProfile, Membership
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
+
+from core.models import Organization, UserProfile, Membership, GameCategory
+
 
 class OrganizerRegisterSerializer(serializers.ModelSerializer):
     organization = serializers.DictField(write_only=True)
@@ -11,6 +15,14 @@ class OrganizerRegisterSerializer(serializers.ModelSerializer):
         model = User
         fields = ['username', 'email', 'password', 'first_name', 'last_name', 'organization']
         extra_kwargs = {'password': {'write_only': True}}
+
+    def validate(self, data):
+        user_data = {k: v for k, v in data.items() if k in ['username', 'email', 'first_name', 'last_name']}
+        try:
+            validate_password(data['password'], user=User(**user_data))
+        except DjangoValidationError as e:
+            raise serializers.ValidationError({'password': e.messages})
+        return data
 
     def create(self, validated_data):
         org_data = validated_data.pop('organization')
@@ -35,7 +47,6 @@ class OrganizerRegisterSerializer(serializers.ModelSerializer):
 
         category = org_data.get('category')
         if category:
-            from core.models import GameCategory
             cat_obj, _ = GameCategory.objects.get_or_create(name=category)
             org.categories.add(cat_obj)
 

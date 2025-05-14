@@ -92,9 +92,15 @@ const submit = async () => {
     alert('Registracija sėkminga! Dabar prisijunkite.')
     router.push('/login')
   } catch (error) {
-    if (error.response) {
-      console.error('Backend klaida:', error.response.data)
-      alert('Registracijos klaida: ' + JSON.stringify(error.response.data))
+    if (error.response && error.response.data.password) {
+      alert('Slaptažodžio klaida: ' + error.response.data.password.join(', '))
+    }
+    else if (error.response && error.response.data.username) {
+      alert('Vartotojo vardo klaida: ' + error.response.data.username.join(', '))
+    } else if (error.response && error.response.data.email) {
+      alert('El. pašto klaida: ' + error.response.data.email.join(', '))
+    } else if (error.response && error.response.data.organization) {
+      alert('Organizacijos klaida: ' + error.response.data.organization.join(', '))
     } else {
       console.error('Nežinoma klaida:', error)
       alert('Įvyko klaida registruojantis.')

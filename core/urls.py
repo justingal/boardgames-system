@@ -73,6 +73,7 @@ urlpatterns = [
     path('events/grouped/<int:org_id>/', GroupedEventsView.as_view(), name='grouped-events-by-org'),
     path('users/me/full/', UserFullProfileView.as_view(), name='user-full-profile'),
 
+
 ]
 
 router = DefaultRouter()

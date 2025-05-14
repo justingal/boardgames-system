@@ -78,8 +78,12 @@ const register = async () => {
     alert('Account created! You can now log in.')
     router.push('/login')
   } catch (error) {
-    alert('Registration failed')
-    console.error(error)
+    if (error.response && error.response.data.password) {
+      alert('Slaptažodžio klaida: ' + error.response.data.password.join(', '))
+    }
+    if (error.response && error.response.data.username) {
+      alert('Vartotojo vardo klaida: ' + error.response.data.username.join(', '))
+    }
   }
 }
 </script>
