@@ -241,11 +241,22 @@
                   </div>
                   <img :src="item.game.thumbnail_url" class="w-14 h-14 object-cover rounded-md" />
                   <div class="overflow-hidden">
-                    <p class="font-medium text-sm truncate">{{ item.game.title }}</p>
+                    <p class="font-medium text-sm truncate">
+                      {{ item.game.title }}
+                    </p>
+
+                    <!-- 🏆 Vieta (rank) -->
+                    <span class="text-xs text-gray-500">🗳️ Balsų suma: {{ item.total_score ?? '–' }}</span>
+
+                    <!-- 🗳️ Balsų kiekis -->
+                    <p v-if="item.vote_count > 0" class="text-xs text-gray-500">
+                      🗳️ Balsų sk.: {{ item.vote_count }}
+                    </p>
+
                     <p class="text-xs text-gray-600">
                       {{ item.game.min_players }}–{{ item.game.max_players }} žaidėjai • {{ item.game.playtime_minutes }} min
                     </p>
-                  </div>
+                </div>
                 </div>
               </div>
 
@@ -279,13 +290,15 @@
     <ImportGamesModal
       :visible="showImportModal"
       @close="showImportModal = false"
-      @imported="fetchEvent"
+      @imported="handleGamesImported"
     />
     <EventVoteModal
+      ref="voteModalRef"
       :visible="showVoteModal"
       @close="showVoteModal = false"
-      @voted="fetchEvent"
+      @voted="fetchGames"
     />
+
     <EditEventModal
       :visible="showEditModal"
       :eventData="event"
@@ -307,6 +320,7 @@ const showVoteModal = ref(false)
 const showImportModal = ref(false)
 const router = useRouter() // <- PRIDĖTA!
 const token = localStorage.getItem('access') // <- PRIDĖTA!
+const voteModalRef = ref()
 
 const route = useRoute()
 const event = ref<any>(null)
@@ -326,6 +340,11 @@ const privacyLabels = {
   private: '🚫 Privatus',
 }
 
+const handleGamesImported = async () => {
+  await fetchGames()
+  await fetchEvent()
+}
+voteModalRef.value?.refresh?.()
 const formatDateTime = (datetimeStr) => {
   if (!datetimeStr) return '';
 

@@ -46,9 +46,9 @@
                 <div class="tooltip-arrow"></div>
               </div>
             </div>
-            <input v-model.number="filterPlaytimeMin" type="number" class="w-16 border rounded px-2 py-1" placeholder="min" />
+            <input v-model.number="filterPlaytimeMin" type="number" class="w-18 border rounded px-2 py-1" placeholder="min" />
             –
-            <input v-model.number="filterPlaytimeMax" type="number" class="w-16 border rounded px-2 py-1" placeholder="max" />
+            <input v-model.number="filterPlaytimeMax" type="number" class="w-18 border rounded px-2 py-1" placeholder="maks" />
           </div>
 
           <div class="flex items-center gap-1 text-sm bg-white px-3 py-2 rounded-lg border border-gray-200">
@@ -57,14 +57,14 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12h2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm12-3h2a2 2 0 012 2v8a2 2 0 01-2 2h-2a2 2 0 01-2-2v-8a2 2 0 012-2z" />
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12h2a2 2 0 012 2v5a2 2 0 01-2 2H9a2 2 0 01-2-2v-5a2 2 0 012-2zm8-7h2a2 2 0 012 2v11a2 2 0 01-2 2h-2a2 2 0 01-2-2V7a2 2 0 012-2z" />
               </svg>
-              <div class="absolute bottom-full mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+              <div class="absolute bottom-full mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-3 whitespace-nowrap">
                 Kompleksiškumas: sudėtingumo lygis nuo 1 iki 5
                 <div class="tooltip-arrow"></div>
               </div>
             </div>
-            <input v-model.number="filterComplexityMin" type="number" class="w-16 border rounded px-2 py-1" placeholder="min" />
+            <input v-model.number="filterComplexityMin" type="number" class="w-18 border rounded px-2 py-1" placeholder="min" />
             –
-            <input v-model.number="filterComplexityMax" type="number" class="w-16 border rounded px-2 py-1" placeholder="max" />
+            <input v-model.number="filterComplexityMax" type="number" class="w-18 border rounded px-2 py-1" placeholder="maks" />
           </div>
 
           <div class="flex items-center gap-1 text-sm bg-white px-3 py-2 rounded-lg border border-gray-200">
@@ -77,9 +77,9 @@
                 <div class="tooltip-arrow"></div>
               </div>
             </div>
-            <input v-model.number="filterRatingMin" type="number" class="w-16 border rounded px-2 py-1" placeholder="min" />
+            <input v-model.number="filterRatingMin" type="number" class="w-18 border rounded px-2 py-1" placeholder="min" />
             –
-            <input v-model.number="filterRatingMax" type="number" class="w-16 border rounded px-2 py-1" placeholder="max" />
+            <input v-model.number="filterRatingMax" type="number" class="w-18 border rounded px-2 py-1" placeholder="maks" />
           </div>
 
           <div class="flex items-center gap-1 text-sm bg-white px-3 py-2 rounded-lg border border-gray-200">
@@ -91,7 +91,7 @@
                 Optimaliausias žaidėjų skaičius
               </div>
             </div>
-            <input v-model.number="filterBestPlayers" type="number" class="w-16 border rounded px-2 py-1" placeholder="#" />
+            <input v-model.number="filterBestPlayers" type="number" class="w-18 border rounded px-2 py-1" placeholder="#" />
           </div>
 
           <select v-model="filterMechanic" class="border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
@@ -296,7 +296,7 @@ const allCategories = ref<string[]>([])
 const languageOptions: Record<string, string> = {
   "No necessary in-game text": "Kalbos nereikia",
   "Some necessary text - easily memorized or small crib sheet": "Mažai teksto – lengva įsiminti",
-  "Moderate in-game text": "Vidutinis kalbos poreikis",
+  "Moderate in-game text - needs crib sheet or paste ups": "Vidutinis kalbos poreikis",
   "Extensive use of text - massive conversion needed to be playable": "Daug teksto – sunku be vertimo",
   "Unplayable in another language": "Neįmanoma žaisti be kalbos žinių",
 }
@@ -304,7 +304,7 @@ const languageOptions: Record<string, string> = {
 const languageDependenceMap: Record<string, string> = {
   "No necessary in-game text": "Kalbos nereikia",
   "Some necessary text - easily memorized or small crib sheet": "Mažai teksto – lengva įsiminti",
-  "Moderate in-game text": "Vidutinis kalbos poreikis",
+  "Moderate in-game text - needs crib sheet or paste ups": "Vidutinis kalbos poreikis",
   "Extensive use of text - massive conversion needed to be playable": "Daug teksto – žaisti sudėtinga be vertimo",
   "Unplayable in another language": "Neįmanoma žaisti be kalbos žinių",
 }
@@ -377,17 +377,15 @@ const sortedFilteredGames = computed(() => {
 
 // Atnaujinti rodomų žaidimų sąrašą kai pasikeičia filtrai
 const updateDisplayGames = () => {
-// Sukuriame duomenų kopiją su unikaliais ID, kad draggable komponentas
-  // galėtų teisingai identifikuoti elementus ir išlaikytų rangą
-  displayGames.value = sortedFilteredGames.value.map((game, index) => {
-    // Tikriname, ar žaidimas jau buvo displayGames sąraše ir turi rangą
-    const existingGame = displayGames.value.find(g => g.game.id === game.game.id)
+  const sorted = sortedFilteredGames.value
+
+  displayGames.value = sorted.map((game, index) => {
     return {
       ...game,
-      id: game.game.id, // naudojame game.id kaip unikalų identifikatorių
-      rank: existingGame?.rank || index + 1 // Išsaugome esamą rangą arba priskiriame naują
+      id: game.game.id,
+      rank: index + 1
     }
-  }).sort((a, b) => a.rank - b.rank) // Rikiuojame pagal rangą
+  })
 }
 
 const handleRankChange = (gameId, newRank) => {

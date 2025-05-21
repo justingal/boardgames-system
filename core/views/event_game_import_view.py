@@ -46,31 +46,37 @@ class EventAvailableGameListView(APIView):
         except Event.DoesNotExist:
             return Response({"error": "Renginys nerastas."}, status=404)
 
-        # Patikrinam ar yra bent vienas balsas
-        if UserGameVote.objects.filter(event=event).exists():
-            # Skaičiuojam balus
-            votes = (
-                UserGameVote.objects
-                .filter(event=event)
-                .values('game')
-                .annotate(total_score=Sum('rank'))
-                .order_by('total_score')  # mažesnis rank = aukščiau
+        all_games = EventAvailableGame.objects.filter(event=event).select_related('game')
+
+        vote_data = (
+            UserGameVote.objects
+            .filter(event=event)
+            .values('game')
+            .annotate(
+                total_score=Sum('rank'),       # mažiau = geriau
+                vote_count=Count('id')
             )
-            # Surenkam game_id eilę
-            game_id_order = [v['game'] for v in votes]
+            .order_by('total_score')
+        )
 
-            # Gauti visus prieinamus žaidimus
-            all_games = EventAvailableGame.objects.filter(event=event).select_related('game')
+        rank_map = {}
+        vote_count_map = {}
+        total_score_map = {}
 
-            # Paskirstom pagal surinktą eilę (ir gale pridedam tuos, kuriems nėra balsų)
-            ordered_games = sorted(
-                all_games,
-                key=lambda g: game_id_order.index(g.game.id) if g.game.id in game_id_order else 9999
-            )
-        else:
-            # Jei nėra jokių balsų – pagal pridėjimo laiką
-            ordered_games = EventAvailableGame.objects.filter(event=event).select_related('game').order_by('added_at')
+        for index, v in enumerate(vote_data):
+            game_id = v['game']
+            rank_map[game_id] = index + 1
+            vote_count_map[game_id] = v['vote_count']
+            total_score_map[game_id] = v['total_score']
 
-        from core.serializers.event_available_game_serializer import EventAvailableGameSerializer
+        # Priskiriame į objektus
+        for g in all_games:
+            g.rank = rank_map.get(g.game.id)
+            g.vote_count = vote_count_map.get(g.game.id, 0)
+            g.total_score = total_score_map.get(g.game.id)  # <- naujas laukas frontendui
+
+        # Rikiavimas pagal rank (mažiau yra geriau)
+        ordered_games = sorted(all_games, key=lambda g: g.rank if g.rank is not None else 9999)
+
         serializer = EventAvailableGameSerializer(ordered_games, many=True)
         return Response(serializer.data)

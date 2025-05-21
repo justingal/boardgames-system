@@ -1,60 +1,215 @@
 <template>
-  <div v-if="visible" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-lg relative">
-      <h2 class="text-xl font-bold mb-4">Redaguoti renginį</h2>
-
-      <!-- Form -->
-      <div>
-        <label class="block mb-2">Pavadinimas:</label>
-        <input v-model="form.title" class="w-full border rounded px-3 py-2 mb-3" />
-
-        <label class="block mb-2">Aprašymas:</label>
-        <textarea v-model="form.description" class="w-full border rounded px-3 py-2 mb-3"></textarea>
-
-        <label class="block mb-2">Adresas:</label>
-        <input v-model="form.address" class="w-full border rounded px-3 py-2 mb-3" :disabled="isLimitedOrganizer"
-               :class="{ 'bg-gray-100 cursor-not-allowed': isLimitedOrganizer }" />
-
-        <label class="block mb-2">Stalo dydis:</label>
-        <select v-model="form.table_size" class="w-full border rounded px-3 py-2 mb-3" :disabled="isLimitedOrganizer"
-                :class="{ 'bg-gray-100 cursor-not-allowed': isLimitedOrganizer }">
-          <option value="S">Mažas</option>
-          <option value="M">Vidutinis</option>
-          <option value="L">Didelis</option>
-          <option value="XL">Labai didelis</option>
-        </select>
-
-        <label class="block mb-2">Viešumas:</label>
-        <select v-model="form.visibility" class="w-full border rounded px-3 py-2 mb-3">
-          <option value="public">Viešas</option>
-          <option value="protected">Apsaugotas</option>
-          <option value="private">Privatus</option>
-        </select>
-
-        <label class="block mb-2">Pradžios laikas:</label>
-        <input type="datetime-local" v-model="form.start_time" class="w-full border rounded px-3 py-2 mb-3"
-               :disabled="isLimitedOrganizer" :class="{ 'bg-gray-100 cursor-not-allowed': isLimitedOrganizer }" />
-
-        <label class="block mb-2">Pabaigos laikas:</label>
-        <input type="datetime-local" v-model="form.end_time" class="w-full border rounded px-3 py-2 mb-3"
-               :disabled="isLimitedOrganizer" :class="{ 'bg-gray-100 cursor-not-allowed': isLimitedOrganizer }" />
-      </div>
-
-      <!-- Informacija apie ribotą redagavimą -->
-      <div v-if="isLimitedOrganizer" class="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-700">
-        <p><strong>Pastaba:</strong> Kadangi tapote organizatoriumi per "pirmas prisijungęs tampa organizatoriumi" funkciją,
-          galite redaguoti tik renginio pavadinimą, aprašymą ir viešumą.</p>
-      </div>
-
-      <!-- Buttons -->
-      <div class="flex justify-end space-x-2 mt-4">
-        <button @click="$emit('close')" class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500">
-          Atšaukti
-        </button>
-        <button @click="submitEdit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-          Išsaugoti pakeitimus
+  <div v-if="visible" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-2xl overflow-y-auto max-h-[90vh] animate-fadeIn">
+      <div class="absolute top-3 right-3">
+        <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 transition">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
         </button>
       </div>
+
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto mb-3">
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+        </div>
+        <h2 class="text-2xl font-bold text-gray-800">Redaguoti renginį</h2>
+        <p class="text-gray-500 mt-1">Atnaujinkite renginio informaciją</p>
+      </div>
+
+      <form class="space-y-5">
+        <!-- Pavadinimas -->
+        <div>
+          <label class="block mb-1 font-medium text-gray-700">Pavadinimas</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+              </svg>
+            </div>
+            <input
+              v-model="form.title"
+              required
+              class="w-full border rounded-lg pl-10 pr-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="Renginio pavadinimas"
+            />
+          </div>
+        </div>
+
+        <!-- Aprašymas -->
+        <div>
+          <label class="block mb-1 font-medium text-gray-700">Aprašymas</label>
+          <div class="relative">
+            <div class="absolute top-3 left-3 flex items-start pointer-events-none">
+              <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
+              </svg>
+            </div>
+            <textarea
+              v-model="form.description"
+              class="w-full border rounded-lg pl-10 pr-3 py-2 min-h-[100px] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="Trumpas renginio aprašymas..."
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- Adresas -->
+        <div>
+          <label class="block mb-1 font-medium text-gray-700">Adresas</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <input
+              v-model="form.address"
+              class="w-full border rounded-lg pl-10 pr-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              :class="{ 'bg-gray-100 cursor-not-allowed': isLimitedOrganizer }"
+              placeholder="Renginio vieta"
+              :disabled="isLimitedOrganizer"
+            />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <!-- Stalo dydis -->
+          <div>
+            <label class="block mb-1 font-medium text-gray-700">Stalo dydis</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+              </div>
+              <select
+                v-model="form.table_size"
+                class="w-full border rounded-lg pl-10 pr-10 py-2 appearance-none bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                :class="{ 'bg-gray-100 cursor-not-allowed': isLimitedOrganizer }"
+                :disabled="isLimitedOrganizer"
+              >
+                <option value="S">Mažas</option>
+                <option value="M">Vidutinis</option>
+                <option value="L">Didelis</option>
+                <option value="XL">Labai didelis</option>
+              </select>
+              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Viešumas -->
+          <div>
+            <label class="block mb-1 font-medium text-gray-700">Viešumas</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </div>
+              <select
+                v-model="form.visibility"
+                class="w-full border rounded-lg pl-10 pr-10 py-2 appearance-none bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="public">🔓 Viešas</option>
+                <option value="protected">🔐 Apsaugotas</option>
+                <option value="private">🚫 Privatus</option>
+              </select>
+              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <!-- Pradžios laikas -->
+          <div>
+            <label class="block mb-1 font-medium text-gray-700">Pradžios laikas</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <input
+                type="datetime-local"
+                v-model="form.start_time"
+                class="w-full border rounded-lg pl-10 pr-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                :class="{ 'bg-gray-100 cursor-not-allowed': isLimitedOrganizer }"
+                :disabled="isLimitedOrganizer"
+              />
+            </div>
+          </div>
+
+          <!-- Pabaigos laikas -->
+          <div>
+            <label class="block mb-1 font-medium text-gray-700">Pabaigos laikas</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <input
+                type="datetime-local"
+                v-model="form.end_time"
+                class="w-full border rounded-lg pl-10 pr-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                :class="{ 'bg-gray-100 cursor-not-allowed': isLimitedOrganizer }"
+                :disabled="isLimitedOrganizer"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Informacija apie ribotą redagavimą -->
+        <div v-if="isLimitedOrganizer" class="p-4 bg-amber-50 rounded-lg border border-amber-100">
+          <div class="flex">
+            <div class="mr-3 flex-shrink-0">
+              <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div class="text-sm text-amber-800">
+              <p class="font-medium">Ribotos redagavimo teisės</p>
+              <p class="mt-1">Kadangi tapote organizatoriumi per "pirmas prisijungęs tampa organizatoriumi" funkciją, galite redaguoti tik renginio pavadinimą, aprašymą ir viešumą.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Veiksmai -->
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <button
+            type="button"
+            @click="$emit('close')"
+            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition shadow-sm flex items-center gap-1"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Atšaukti
+          </button>
+          <button
+            type="button"
+            @click="submitEdit"
+            class="px-5 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg hover:from-indigo-700 hover:to-blue-700 transition shadow-sm flex items-center gap-2"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            Išsaugoti pakeitimus
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 </template>
