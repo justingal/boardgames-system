@@ -95,8 +95,41 @@
               </div>
             </div>
 
-            <!-- Dešinė pusė: veiksmai ir aprašymas -->
+            <!-- Dešinė pusė: veiksmai -->
             <div class="flex flex-col gap-3 md:w-1/4">
+              <!-- Join/Leave Event Button -->
+              <button
+                v-if="!userIsParticipant && !userIsOrganizer"
+                @click="joinEvent"
+                :disabled="joiningEvent"
+                class="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 shadow-sm transition disabled:opacity-50"
+              >
+                <svg v-if="!joiningEvent" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                <svg v-else class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                {{ joiningEvent ? 'Prisijungiama...' : (event.first_player_is_organizer && (!event.players || event.players.length === 0) ? 'Tapti organizatoriumi' : 'Prisijungti') }}
+              </button>
+
+              <button
+                v-if="userIsParticipant && !userIsOrganizer"
+                @click="leaveEvent"
+                :disabled="leavingEvent"
+                class="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 shadow-sm transition disabled:opacity-50"
+              >
+                <svg v-if="!leavingEvent" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                <svg v-else class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                {{ leavingEvent ? 'Išeinama...' : 'Išeiti' }}
+              </button>
+
               <button
                 v-if="userIsOrganizer"
                 @click="showEditModal = true"
@@ -139,60 +172,245 @@
         <!-- Dalyvių sąrašas -->
         <div class="lg:col-span-1">
           <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div class="bg-gradient-to-r from-indigo-500 to-blue-600 px-6 py-4">
+            <div class="bg-gradient-to-r from-indigo-500 to-blue-600 px-6 py-4 flex justify-between items-center">
               <h2 class="text-lg font-semibold text-white flex items-center">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
                 Dalyviai ({{ event.players?.length || 0 }})
               </h2>
+
+              <!-- Invite Participants Button -->
+              <button
+                v-if="userIsOrganizer"
+                @click="showInviteModal = true"
+                class="px-3 py-1.5 bg-white/20 text-white text-sm rounded-md hover:bg-white/30 transition shadow-sm flex items-center gap-1"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Kviesti
+              </button>
             </div>
 
+            <!-- Join Requests - PERKELTAS Į VIRŠŲ -->
+            <div v-if="userIsOrganizer && joinRequests && joinRequests.length > 0" class="border-b border-gray-200 bg-yellow-50">
+              <div class="p-4">
+                <h3 class="font-semibold mb-3 text-gray-800 flex items-center">
+                  <svg class="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 3 1.732 3z" />
+                  </svg>
+                  Laukiantys prisijungimo prašymai ({{ joinRequests.length }})
+                </h3>
+                <div class="space-y-2">
+                  <div v-for="request in joinRequests" :key="request.id" class="bg-white rounded-lg shadow-sm p-3">
+                    <div class="flex items-center mb-3">
+                      <div class="w-10 h-10 bg-yellow-100 text-yellow-700 rounded-full flex items-center justify-center font-semibold mr-3 flex-shrink-0">
+                        {{ request.user_username?.charAt(0)?.toUpperCase() || '?' }}
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <p class="font-medium text-gray-800 truncate">{{ request.user_username || 'Nežinomas vartotojas' }}</p>
+                        <p class="text-sm text-gray-500 truncate">{{ request.user_email || '' }}</p>
+                      </div>
+                    </div>
+                    <div class="flex gap-2">
+                      <button
+                        @click="approveRequest(request.id)"
+                        class="flex-1 px-3 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition font-medium flex items-center justify-center gap-1"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Priimti
+                      </button>
+                      <button
+                        @click="rejectRequest(request.id)"
+                        class="flex-1 px-3 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition font-medium flex items-center justify-center gap-1"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Atmesti
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Participants List -->
             <div v-if="event.players && event.players.length > 0" class="divide-y divide-gray-200">
               <div v-for="player in event.players" :key="player.id" class="p-4 hover:bg-gray-50 transition">
                 <div class="flex items-center justify-between">
-                  <div class="flex items-center">
-                    <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold mr-3">
+                  <div class="flex items-center flex-1 min-w-0">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white font-bold mr-3 flex-shrink-0 shadow-sm">
                       {{ player.username.charAt(0).toUpperCase() }}
                     </div>
-                    <div>
-                      <p class="font-medium">{{ player.username }}</p>
-                      <p v-if="isOrganizer(player.id)" class="text-xs text-green-600 font-semibold">
-                        Organizatorius
-                      </p>
+                    <div class="min-w-0 flex-1">
+                      <p class="font-medium text-gray-900 truncate">{{ player.username }}</p>
+                      <div class="flex items-center gap-2">
+                <span v-if="isOrganizer(player.id)" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                  <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                  Organizatorius
+                </span>
+                        <span v-if="player.id === user?.id" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                  Tu
+                </span>
+                      </div>
                     </div>
                   </div>
 
                   <!-- Veiksmai -->
-                  <div v-if="userIsOrganizer" class="flex flex-col gap-2">
+                  <div v-if="userIsOrganizer && player.id !== user?.id" class="flex items-center gap-2 ml-3">
                     <button
                       v-if="!isOrganizer(player.id)"
                       @click="makeOrganizer(player.id)"
-                      class="text-xs px-2 py-1 bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100 transition"
+                      class="px-3 py-1.5 bg-indigo-50 text-indigo-700 text-sm rounded-md hover:bg-indigo-100 transition font-medium"
+                      title="Suteikti organizatoriaus teises"
                     >
-                      Suteikti teises
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
                     </button>
                     <button
                       v-else-if="canRemoveOrganizerStatus(player.id)"
                       @click="removeOrganizer(player.id)"
-                      class="text-xs px-2 py-1 bg-orange-50 text-orange-600 rounded hover:bg-orange-100 transition"
+                      class="px-3 py-1.5 bg-orange-50 text-orange-700 text-sm rounded-md hover:bg-orange-100 transition font-medium"
+                      title="Atimti organizatoriaus teises"
                     >
-                      Atimti teises
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
                     </button>
                     <button
                       v-if="canKickPlayer(player.id)"
                       @click="kickPlayer(player.id)"
-                      class="text-xs px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100 transition"
+                      class="px-3 py-1.5 bg-red-50 text-red-700 text-sm rounded-md hover:bg-red-100 transition font-medium"
+                      title="Išmesti iš renginio"
                     >
-                      Išmesti
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h18v-1a6 6 0 00-6-6v-1m-3 1a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
                     </button>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div v-else class="p-6 text-center text-gray-500">
-              Nėra prisijungusių dalyvių.
+            <!-- Empty State -->
+            <div v-else class="p-12 text-center">
+              <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
+              <h3 class="text-lg font-semibold text-gray-900 mb-2">Dar nėra dalyvių</h3>
+              <p class="text-gray-500 mb-6">Būkite pirmas prisijungęs prie šio renginio!</p>
+              <button
+                v-if="!userIsParticipant && !userIsOrganizer"
+                @click="joinEvent"
+                :disabled="joiningEvent"
+                class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg hover:from-indigo-700 hover:to-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm font-medium"
+              >
+                <svg v-if="!joiningEvent" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v-3a3 3 0 00-3-3H5a3 3 0 00-3 3v6m3 0h12m-3 0l3 3m-3-3l3-3m-12 3l-3 3m3-3l-3-3" />
+                </svg>
+                <svg v-else class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                {{ joiningEvent ? 'Prisijungiama...' : 'Prisijungti prie renginio' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Participant Invitation Modal -->
+        <div v-if="showInviteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div class="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] flex flex-col">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center p-6 border-b border-gray-200">
+              <h3 class="text-xl font-semibold text-gray-900">Kviesti dalyvius</h3>
+              <button
+                @click="closeInviteModal"
+                class="text-gray-400 hover:text-gray-600 transition p-1 rounded-lg hover:bg-gray-100"
+              >
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 flex-1 overflow-hidden flex flex-col">
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Ieškoti vartotojo
+                </label>
+                <div class="relative">
+                  <input
+                    v-model="searchQuery"
+                    @input="searchUsers"
+                    type="text"
+                    placeholder="Įveskite vardą arba el. paštą..."
+                    class="w-full px-4 py-2.5 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                  />
+                  <svg class="absolute left-3 top-3 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Search results -->
+              <div class="flex-1 overflow-y-auto">
+                <div v-if="searchResults.length > 0" class="space-y-2">
+                  <h4 class="text-sm font-medium text-gray-700 mb-3">Rasti vartotojai:</h4>
+                  <div
+                    v-for="searchUser in searchResults"
+                    :key="searchUser.id"
+                    class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+                  >
+                    <div class="flex items-center flex-1 min-w-0">
+                      <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-full flex items-center justify-center font-semibold mr-3 flex-shrink-0">
+                        {{ searchUser.username.charAt(0).toUpperCase() }}
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <p class="font-medium text-gray-900 truncate">{{ searchUser.username }}</p>
+                        <p class="text-sm text-gray-500 truncate">{{ searchUser.email }}</p>
+                      </div>
+                    </div>
+                    <button
+                      @click="inviteUser(searchUser.id)"
+                      :disabled="invitingUsers.includes(searchUser.id)"
+                      class="ml-3 px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition font-medium flex-shrink-0"
+                    >
+                      {{ invitingUsers.includes(searchUser.id) ? 'Siunčiama...' : 'Kviesti' }}
+                    </button>
+                  </div>
+                </div>
+
+                <div v-else-if="searchQuery && searchQuery.length >= 2" class="text-center py-8">
+                  <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-3">
+                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <p class="text-gray-500">Vartotojų nerasta</p>
+                  <p class="text-sm text-gray-400 mt-1">Pabandykite kitą paieškos užklausą</p>
+                </div>
+
+                <div v-else class="text-center py-8">
+                  <div class="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-full mb-3">
+                    <svg class="w-8 h-8 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <p class="text-gray-600 font-medium">Pradėkite rašyti, kad rastumėte vartotojus</p>
+                  <p class="text-sm text-gray-400 mt-1">Įveskite bent 2 simbolius</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -256,7 +474,7 @@
                     <p class="text-xs text-gray-600">
                       {{ item.game.min_players }}–{{ item.game.max_players }} žaidėjai • {{ item.game.playtime_minutes }} min
                     </p>
-                </div>
+                  </div>
                 </div>
               </div>
 
@@ -307,10 +525,9 @@
     />
   </div>
 </template>
-
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router' // <- BŪTINA!
+import { ref, onMounted, computed, watch, watchEffect } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import axios from '@/api/axios'
 import EditEventModal from '@/components/EditEventModal.vue'
 import ImportGamesModal from '@/components/ImportGamesModal.vue'
@@ -318,14 +535,26 @@ import EventVoteModal from "@/components/EventVoteModal.vue";
 
 const showVoteModal = ref(false)
 const showImportModal = ref(false)
-const router = useRouter() // <- PRIDĖTA!
-const token = localStorage.getItem('access') // <- PRIDĖTA!
+const router = useRouter()
+const token = localStorage.getItem('access')
 const voteModalRef = ref()
 
 const route = useRoute()
 const event = ref<any>(null)
 const message = ref('')
 const messageClass = ref('bg-green-100 text-green-800')
+const user = ref<any>(null)
+const joinRequests = ref<any[]>([])
+
+// UI state
+const showInviteModal = ref(false)
+const joiningEvent = ref(false)
+const leavingEvent = ref(false)
+
+// Search functionality
+const searchQuery = ref('')
+const searchResults = ref([])
+const invitingUsers = ref<number[]>([])
 
 const tableSizeLabels = {
   S: 'Mažas',
@@ -340,65 +569,221 @@ const privacyLabels = {
   private: '🚫 Privatus',
 }
 
+// Computed properties
+const userIsParticipant = computed(() => {
+  if (!event.value || !user.value) return false
+  return event.value.players?.some((player: any) => player.id === user.value.id) || false
+})
+
+const userIsOrganizer = computed(() => {
+  if (!event.value || !user.value) return false
+
+  const isInOrganizersList = event.value.organizers?.some((org: any) => org.id === user.value.id) || false
+  const isCreator = event.value.created_by === user.value.username
+
+  return isInOrganizersList || isCreator
+})
+
+const userIsOrgCreator = computed(() => {
+  return event.value?.organization_creator === user.value?.username
+})
+
+// Functions
 const handleGamesImported = async () => {
   await fetchGames()
   await fetchEvent()
 }
-voteModalRef.value?.refresh?.()
-const formatDateTime = (datetimeStr) => {
+
+const formatDateTime = (datetimeStr: string) => {
   if (!datetimeStr) return '';
 
-  // Sukuriame datą iš ISO string
   const date = new Date(datetimeStr);
-
-  // Formatuojame pagal vietinę laiko juostą
-  const options = {
+  const options: Intl.DateTimeFormatOptions = {
     dateStyle: 'medium',
     timeStyle: 'short',
-    timeZone: 'UTC'  // Tai leis rodyti laiką taip, kaip jis buvo įvestas
+    timeZone: 'UTC'
   };
 
   return date.toLocaleString('lt-LT', options);
 }
+
 const fetchEvent = async () => {
   try {
     const res = await axios.get(`/events/${route.params.id}/`)
     event.value = res.data
+    console.log('Event loaded:', res.data)
   } catch (err) {
     console.error('Nepavyko gauti renginio:', err)
     message.value = '❌ Klaida gaunant renginio informaciją.'
     messageClass.value = 'bg-red-100 text-red-800'
   }
 }
-const userIsOrgCreator = computed(() => {
-  return event.value?.organization_creator === user.value?.username
-})
-
-
-
-const user = ref<any>(null)
 
 const fetchUser = async () => {
   try {
     const res = await axios.get('/users/me/')
     user.value = res.data
+    console.log('User loaded:', res.data)
   } catch (err) {
     console.error('Nepavyko gauti vartotojo informacijos:', err)
   }
 }
 
-// Check if current user is an organizer
-const userIsOrganizer = computed(() => {
-  if (!event.value || !user.value) return false
+const fetchJoinRequests = async () => {
+  console.log('fetchJoinRequests called!')
 
-  // Check if user is in organizers list
-  if (event.value.organizers && event.value.organizers.length > 0) {
-    return event.value.organizers.some((org: any) => org.id === user.value.id)
+  if (!event.value || !user.value) {
+    console.log('No event or user yet:', { event: event.value, user: user.value })
+    return
   }
 
-  // Or if user is the one who created the event
-  return event.value.created_by === user.value.username
+  console.log('Checking if user is organizer:', userIsOrganizer.value)
+
+  if (!userIsOrganizer.value) {
+    console.log('User is not organizer, skipping join requests fetch')
+    return
+  }
+
+  try {
+    console.log('Fetching join requests for event:', route.params.id)
+    const res = await axios.get(`/events/${route.params.id}/join_requests/`)
+    console.log('Join requests received:', res.data)
+    joinRequests.value = res.data
+  } catch (err) {
+    console.error('Nepavyko gauti prisijungimo prašymų:', err)
+  }
+}
+
+// Watch for when both event and user are loaded, then fetch join requests if user is organizer
+watchEffect(() => {
+  if (event.value && user.value && userIsOrganizer.value) {
+    console.log('Conditions met, fetching join requests...')
+    fetchJoinRequests()
+  }
 })
+
+// Join/Leave event functionality
+const joinEvent = async () => {
+  joiningEvent.value = true
+  try {
+    const res = await axios.post(`/events/${route.params.id}/join/`)
+    message.value = res.data.detail || '✅ Sėkmingai prisijungėte prie renginio!'
+    messageClass.value = 'bg-green-100 text-green-800'
+    await fetchEvent()
+  } catch (err: any) {
+    console.error('Klaida prisijungiant prie renginio:', err)
+    if (err.response?.status === 400) {
+      message.value = err.response.data.detail || '❌ Negalite prisijungti prie šio renginio.'
+    } else {
+      message.value = '❌ Klaida prisijungiant prie renginio.'
+    }
+    messageClass.value = 'bg-red-100 text-red-800'
+  } finally {
+    joiningEvent.value = false
+  }
+}
+
+const leaveEvent = async () => {
+  if (!confirm('Ar tikrai norite išeiti iš šio renginio?')) return
+
+  leavingEvent.value = true
+  try {
+    const res = await axios.post(`/events/${route.params.id}/leave/`)
+    message.value = res.data.detail || '✅ Sėkmingai išėjote iš renginio.'
+    messageClass.value = 'bg-green-100 text-green-800'
+    await fetchEvent()
+  } catch (err) {
+    console.error('Klaida išeinant iš renginio:', err)
+    message.value = '❌ Klaida išeinant iš renginio.'
+    messageClass.value = 'bg-red-100 text-red-800'
+  } finally {
+    leavingEvent.value = false
+  }
+}
+
+// User search and invitation
+const searchUsers = async () => {
+  if (searchQuery.value.length < 2) {
+    searchResults.value = []
+    return
+  }
+
+  try {
+    const res = await axios.get('/users/search/', {
+      params: { q: searchQuery.value }
+    })
+    // Filter out users who are already participants
+    const participantIds = event.value.players?.map((player: any) => player.id) || []
+    searchResults.value = res.data.filter((user: any) => !participantIds.includes(user.id))
+  } catch (error) {
+    console.error('Error searching users:', error)
+    searchResults.value = []
+  }
+}
+
+const inviteUser = async (userId: number) => {
+  if (invitingUsers.value.includes(userId)) return
+
+  invitingUsers.value.push(userId)
+
+  try {
+    await axios.post(`/events/${route.params.id}/invite/`, {
+      user_id: userId
+    })
+
+    message.value = '✅ Kvietimas sėkmingai išsiųstas!'
+    messageClass.value = 'bg-green-100 text-green-800'
+
+    // Remove user from search results after successful invitation
+    searchResults.value = searchResults.value.filter((user: any) => user.id !== userId)
+  } catch (error) {
+    console.error('Error inviting user:', error)
+    message.value = '❌ Nepavyko išsiųsti kvietimo. Bandykite dar kartą.'
+    messageClass.value = 'bg-red-100 text-red-800'
+  } finally {
+    invitingUsers.value = invitingUsers.value.filter(id => id !== userId)
+  }
+}
+
+const closeInviteModal = () => {
+  showInviteModal.value = false
+  searchQuery.value = ''
+  searchResults.value = []
+  invitingUsers.value = []
+}
+
+const approveRequest = async (requestId: number) => {
+  try {
+    const res = await axios.post(`/events/${route.params.id}/approve_request/`, {
+      request_id: requestId
+    })
+
+    message.value = res.data.detail || '✅ Naudotojas patvirtintas.'
+    messageClass.value = 'bg-green-100 text-green-800'
+    await fetchEvent()
+    await fetchJoinRequests()
+  } catch (err) {
+    console.error('Klaida tvirtinant naudotoją:', err)
+    message.value = '❌ Klaida tvirtinant prisijungimą.'
+    messageClass.value = 'bg-red-100 text-red-800'
+  }
+}
+
+const rejectRequest = async (requestId: number) => {
+  try {
+    const res = await axios.post(`/events/${route.params.id}/reject_request/`, {
+      request_id: requestId
+    })
+
+    message.value = res.data.detail || '✅ Prašymas atmestas.'
+    messageClass.value = 'bg-green-100 text-green-800'
+    await fetchJoinRequests()
+  } catch (err) {
+    console.error('Klaida atmetant prašymą:', err)
+    message.value = '❌ Klaida atmetant prašymą.'
+    messageClass.value = 'bg-red-100 text-red-800'
+  }
+}
 
 // Check if a specific player is an organizer
 const isOrganizer = (playerId: number) => {
@@ -435,15 +820,13 @@ const makeOrganizer = async (userId: number) => {
     const res = await axios.post(`/events/${route.params.id}/make-organizer/`, { user_id: userId })
     message.value = res.data.message || '✅ Organizatoriaus teisės suteiktos.'
     messageClass.value = 'bg-green-100 text-green-800'
-    await fetchEvent() // Refresh event data
+    await fetchEvent()
   } catch (err) {
     console.error('Klaida suteikiant organizatoriaus teises:', err)
     message.value = '❌ Klaida suteikiant organizatoriaus teises.'
     messageClass.value = 'bg-red-100 text-red-800'
   }
 }
-
-
 
 const deleteEvent = async () => {
   if (!confirm('Ar tikrai nori ištrinti šį renginį?')) return
@@ -452,7 +835,7 @@ const deleteEvent = async () => {
       headers: { Authorization: `Bearer ${token}` }
     })
     alert('✅ Renginys ištrintas.')
-    router.push('/events') // arba `/organizations/${event.value.organization}`
+    router.push('/events')
   } catch (error) {
     console.error('Nepavyko ištrinti renginio:', error)
     alert('❌ Klaida trinant renginį.')
@@ -464,7 +847,7 @@ const removeOrganizer = async (userId: number) => {
     const res = await axios.post(`/events/${route.params.id}/remove-organizer/`, { user_id: userId })
     message.value = res.data.message || '✅ Organizatoriaus teisės pašalintos.'
     messageClass.value = 'bg-green-100 text-green-800'
-    await fetchEvent() // Refresh event data
+    await fetchEvent()
   } catch (err) {
     console.error('Klaida šalinant organizatoriaus teises:', err)
     message.value = '❌ Klaida šalinant organizatoriaus teises.'
@@ -473,11 +856,13 @@ const removeOrganizer = async (userId: number) => {
 }
 
 const kickPlayer = async (userId: number) => {
+  if (!confirm('Ar tikrai norite išmesti šį žaidėją?')) return
+
   try {
     const res = await axios.post(`/events/${route.params.id}/kick-player/`, { user_id: userId })
     message.value = res.data.message || '✅ Žaidėjas išmestas.'
     messageClass.value = 'bg-green-100 text-green-800'
-    await fetchEvent() // Refresh event data
+    await fetchEvent()
   } catch (err) {
     console.error('Klaida metant žaidėją lauk:', err)
     message.value = '❌ Klaida metant žaidėją lauk.'
@@ -486,14 +871,13 @@ const kickPlayer = async (userId: number) => {
 }
 
 const showEditModal = ref(false)
-const openEditModal = () => {
-  showEditModal.value = true
-}
+
 const handleEventUpdated = async () => {
-  await fetchEvent()               // Tavo jau esama funkcija, kuri atnaujina event duomenis
+  await fetchEvent()
   message.value = '✅ Renginys atnaujintas!'
   messageClass.value = 'bg-green-100 text-green-800'
 }
+
 const allGames = ref<any[]>([])
 const visibleGames = ref<any[]>([])
 const gamesToShow = ref(10)
@@ -513,9 +897,23 @@ const showMoreGames = () => {
   visibleGames.value = allGames.value.slice(0, gamesToShow.value)
 }
 
-onMounted(() => {
-  fetchUser()
-  fetchEvent()
-  fetchGames()
+// Mount hook - load initial data
+onMounted(async () => {
+  try {
+    // Load user and event data in parallel
+    await Promise.all([
+      fetchUser(),
+      fetchEvent()
+    ])
+
+    console.log('Initial data loaded successfully')
+
+    // Load games after event is loaded
+    fetchGames()
+
+    // Join requests will be loaded automatically by watchEffect when conditions are met
+  } catch (error) {
+    console.error('Error loading initial data:', error)
+  }
 })
 </script>

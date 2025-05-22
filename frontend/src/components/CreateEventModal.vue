@@ -154,6 +154,48 @@
           </div>
         </div>
 
+        <!-- Viešumo lygis -->
+        <div>
+          <label class="block mb-1 font-medium text-gray-700">Renginio viešumas</label>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <label class="relative border rounded-lg p-3 flex items-center cursor-pointer hover:bg-gray-50 transition"
+                   :class="{'bg-indigo-50 border-indigo-300': form.visibility === 'public'}">
+              <input type="radio" v-model="form.visibility" value="public" class="absolute opacity-0 h-0 w-0" />
+              <div class="flex items-center">
+                <div class="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center mr-3">🔓</div>
+                <div>
+                  <p class="font-medium text-gray-800">Viešas</p>
+                  <p class="text-xs text-gray-500">Matomas visiems</p>
+                </div>
+              </div>
+            </label>
+
+            <label class="relative border rounded-lg p-3 flex items-center cursor-pointer hover:bg-gray-50 transition"
+                   :class="{'bg-indigo-50 border-indigo-300': form.visibility === 'protected'}">
+              <input type="radio" v-model="form.visibility" value="protected" class="absolute opacity-0 h-0 w-0" />
+              <div class="flex items-center">
+                <div class="w-10 h-10 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mr-3">🔐</div>
+                <div>
+                  <p class="font-medium text-gray-800">Apsaugotas</p>
+                  <p class="text-xs text-gray-500">Reikalingas leidimas</p>
+                </div>
+              </div>
+            </label>
+
+            <label class="relative border rounded-lg p-3 flex items-center cursor-pointer hover:bg-gray-50 transition"
+                   :class="{'bg-indigo-50 border-indigo-300': form.visibility === 'private'}">
+              <input type="radio" v-model="form.visibility" value="private" class="absolute opacity-0 h-0 w-0" />
+              <div class="flex items-center">
+                <div class="w-10 h-10 bg-red-100 text-red-600 rounded-full flex items-center justify-center mr-3">🚫</div>
+                <div>
+                  <p class="font-medium text-gray-800">Privatus</p>
+                  <p class="text-xs text-gray-500">Tik pakviestiems</p>
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
+
         <!-- Stalo dydis -->
         <div>
           <label class="block mb-1 font-medium text-gray-700">Stalo dydis</label>
@@ -290,7 +332,8 @@ const form = ref({
   perksList: [],
   is_repeating: false,
   repeat_days: [],
-  first_player_is_organizer: true
+  first_player_is_organizer: true,
+  visibility: 'public'
 })
 
 const allPerks = [
@@ -385,7 +428,9 @@ const submit = async () => {
       is_repeating: form.value.is_repeating,
       repeat_days: repeatedDays,
       organization: form.value.organization,
-      first_player_is_organizer: isFirstPlayerOrganizer
+      first_player_is_organizer: isFirstPlayerOrganizer,
+      visibility: form.value.visibility
+
     }
 
     console.log('Siunčiami duomenys:', payload);

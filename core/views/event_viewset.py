@@ -149,68 +149,178 @@ class EventViewSet(viewsets.ModelViewSet):
         self.perform_update(serializer)
         return Response(serializer.data)
 
-    # --- JOIN / REQUEST / INVITE LOGIKA ŽEMIAU ---
+    def _is_event_organizer(self, event, user):
+        """Helper method to check if user is an event organizer"""
+        return (event.created_by == user or
+                user in event.organizers.all() or
+                event.organization.created_by == user)
+
+    # --- JOIN / LEAVE / REQUEST / INVITE LOGIKA ---
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def join(self, request, pk=None):
         event = self.get_object()
         user = request.user
 
+        # Check if already a participant
         if event.players.filter(id=user.id).exists():
             return Response({'detail': 'Jau esate prisijungęs prie šio renginio.'}, status=400)
 
+        # Handle different visibility levels
         if event.visibility == 'public':
             event.players.add(user)
-            return Response({'detail': 'Prisijungta sėkmingai.'})
+
+            # Special logic for first_player_is_organizer events
+            if event.first_player_is_organizer and event.players.count() == 1:
+                event.organizers.add(user)
+                return Response({'detail': 'Prisijungta sėkmingai kaip organizatorius!'}, status=200)
+
+            return Response({'detail': 'Prisijungta sėkmingai.'}, status=200)
 
         elif event.visibility == 'protected':
-            JoinRequest.objects.get_or_create(user=user, event=event)
-            return Response({'detail': 'Prašymas išsiųstas. Laukiama patvirtinimo.'})
+            # Create join request for protected events
+            join_request, created = JoinRequest.objects.get_or_create(user=user, event=event)
+            if created:
+                return Response({'detail': 'Prašymas išsiųstas. Laukiama patvirtinimo.'}, status=201)
+            else:
+                return Response({'detail': 'Prašymas jau išsiųstas. Laukiama patvirtinimo.'}, status=200)
 
         elif event.visibility == 'private':
             return Response({'detail': 'Privatus renginys. Reikia kvietimo.'}, status=403)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def leave(self, request, pk=None):
+        event = self.get_object()
+        user = request.user
+
+        # Check if user is a participant
+        if not event.players.filter(id=user.id).exists():
+            return Response({'detail': 'Nesate šio renginio dalyvis.'}, status=400)
+
+        # Don't allow event creator to leave if they're the only organizer
+        if (event.created_by == user and
+                event.organizers.count() == 1 and
+                event.organizers.filter(id=user.id).exists()):
+            return Response({
+                'detail': 'Negalite išeiti iš renginio būdami vieninteliu organizatoriumi.'
+            }, status=400)
+
+        # Remove from players and organizers
+        event.players.remove(user)
+        if event.organizers.filter(id=user.id).exists():
+            event.organizers.remove(user)
+
+        return Response({'detail': 'Sėkmingai išėjote iš renginio.'}, status=200)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def approve_request(self, request, pk=None):
         event = self.get_object()
-        if event.organization.created_by != request.user:
-            return Response({'detail': 'Tik organizatorius gali patvirtinti.'}, status=403)
+        user = request.user
+
+        # Check if user can approve requests (organizers or org creator)
+        if not self._is_event_organizer(event, user):
+            return Response({'detail': 'Tik organizatoriai gali patvirtinti prašymus.'}, status=403)
 
         req_id = request.data.get("request_id")
+        if not req_id:
+            return Response({'detail': 'Trūksta request_id parametro.'}, status=400)
+
         join_request = get_object_or_404(JoinRequest, pk=req_id, event=event)
+
+        # Add user to event
         event.players.add(join_request.user)
+
+        # Special logic for first_player_is_organizer events
+        if event.first_player_is_organizer and event.players.count() == 1:
+            event.organizers.add(join_request.user)
+
+        # Delete the request
         join_request.delete()
+
         return Response({"detail": "Prašymas patvirtintas."})
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def reject_request(self, request, pk=None):
+        event = self.get_object()
+        user = request.user
+
+        # Check if user can reject requests (organizers or org creator)
+        if not self._is_event_organizer(event, user):
+            return Response({'detail': 'Tik organizatoriai gali atmesti prašymus.'}, status=403)
+
+        req_id = request.data.get("request_id")
+        if not req_id:
+            return Response({'detail': 'Trūksta request_id parametro.'}, status=400)
+
+        join_request = get_object_or_404(JoinRequest, pk=req_id, event=event)
+        join_request.delete()
+
+        return Response({"detail": "Prašymas atmestas."})
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def invite(self, request, pk=None):
         event = self.get_object()
-        if event.organization.created_by != request.user:
-            return Response({"detail": "Tik organizatorius gali siųsti kvietimus."}, status=403)
+        user = request.user
+
+        # Check if user can send invites (organizers or org creator)
+        if not self._is_event_organizer(event, user):
+            return Response({"detail": "Tik organizatoriai gali siųsti kvietimus."}, status=403)
 
         user_id = request.data.get("user_id")
+        if not user_id:
+            return Response({"detail": "Trūksta user_id parametro."}, status=400)
+
         invited_user = get_object_or_404(User, pk=user_id)
-        Invite.objects.get_or_create(invited_user=invited_user, event=event)
-        return Response({"detail": "Kvietimas išsiųstas."})
+
+        # Check if user is already a participant
+        if event.players.filter(id=invited_user.id).exists():
+            return Response({"detail": "Naudotojas jau yra renginio dalyvis."}, status=400)
+
+        # Create or get existing invite
+        invite, created = Invite.objects.get_or_create(
+            invited_user=invited_user,
+            event=event,
+            defaults={'is_accepted': False}
+        )
+
+        if created:
+            return Response({"detail": "Kvietimas išsiųstas."})
+        else:
+            return Response({"detail": "Kvietimas jau buvo išsiųstas."})
 
     @action(detail=False, methods=["post"], permission_classes=[permissions.IsAuthenticated])
     def accept_invite(self, request):
         invite_id = request.data.get("invite_id")
+        if not invite_id:
+            return Response({"detail": "Trūksta invite_id parametro."}, status=400)
+
         invite = get_object_or_404(Invite, pk=invite_id, invited_user=request.user)
 
         if invite.is_accepted:
             return Response({"detail": "Kvietimas jau priimtas."})
 
+        # Add user to event
         invite.event.players.add(request.user)
+
+        # Special logic for first_player_is_organizer events
+        if (invite.event.first_player_is_organizer and
+                invite.event.players.count() == 1):
+            invite.event.organizers.add(request.user)
+
+        # Mark invite as accepted
         invite.is_accepted = True
         invite.save()
+
         return Response({"detail": "Prisijungta prie renginio."})
 
     @action(detail=True, methods=["get"], permission_classes=[permissions.IsAuthenticated])
     def join_requests(self, request, pk=None):
         event = self.get_object()
-        if event.organization.created_by != request.user:
-            return Response({"detail": "Tik organizatorius gali matyti prašymus."}, status=403)
+        user = request.user
+
+        # Check if user can view requests (organizers or org creator)
+        if not self._is_event_organizer(event, user):
+            return Response({"detail": "Tik organizatoriai gali matyti prašymus."}, status=403)
 
         requests = JoinRequest.objects.filter(event=event)
         serializer = JoinRequestSerializer(requests, many=True)
@@ -221,3 +331,89 @@ class EventViewSet(viewsets.ModelViewSet):
         invites = Invite.objects.filter(invited_user=request.user, is_accepted=False)
         serializer = InviteSerializer(invites, many=True)
         return Response(serializer.data)
+
+    # --- ORGANIZER MANAGEMENT ---
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def make_organizer(self, request, pk=None):
+        event = self.get_object()
+        user = request.user
+
+        # Check if user can manage organizers
+        if not self._is_event_organizer(event, user):
+            return Response({'detail': 'Tik organizatoriai gali suteikti organizatoriaus teises.'}, status=403)
+
+        user_id = request.data.get("user_id")
+        if not user_id:
+            return Response({"detail": "Trūksta user_id parametro."}, status=400)
+
+        target_user = get_object_or_404(User, pk=user_id)
+
+        # Check if target user is a participant
+        if not event.players.filter(id=target_user.id).exists():
+            return Response({"detail": "Naudotojas nėra renginio dalyvis."}, status=400)
+
+        # Check if already an organizer
+        if event.organizers.filter(id=target_user.id).exists():
+            return Response({"detail": "Naudotojas jau yra organizatorius."}, status=400)
+
+        # Add as organizer
+        event.organizers.add(target_user)
+
+        return Response({"message": "Organizatoriaus teisės suteiktos."})
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def remove_organizer(self, request, pk=None):
+        event = self.get_object()
+        user = request.user
+
+        # Check if user can manage organizers
+        if not self._is_event_organizer(event, user):
+            return Response({'detail': 'Tik organizatoriai gali šalinti organizatoriaus teises.'}, status=403)
+
+        user_id = request.data.get("user_id")
+        if not user_id:
+            return Response({"detail": "Trūksta user_id parametro."}, status=400)
+
+        target_user = get_object_or_404(User, pk=user_id)
+
+        # Don't allow removing creator if they're the only organizer
+        if (target_user == event.created_by and event.organizers.count() == 1):
+            return Response({
+                "detail": "Negalima pašalinti renginio kūrėjo teisių, jei jis yra vienintelis organizatorius."
+            }, status=400)
+
+        # Remove organizer status
+        if event.organizers.filter(id=target_user.id).exists():
+            event.organizers.remove(target_user)
+            return Response({"message": "Organizatoriaus teisės pašalintos."})
+        else:
+            return Response({"detail": "Naudotojas nėra organizatorius."}, status=400)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def kick_player(self, request, pk=None):
+        event = self.get_object()
+        user = request.user
+
+        # Check if user can kick players
+        if not self._is_event_organizer(event, user):
+            return Response({'detail': 'Tik organizatoriai gali išmesti dalyvius.'}, status=403)
+
+        user_id = request.data.get("user_id")
+        if not user_id:
+            return Response({"detail": "Trūksta user_id parametro."}, status=400)
+
+        target_user = get_object_or_404(User, pk=user_id)
+
+        # Don't allow kicking organizers
+        if event.organizers.filter(id=target_user.id).exists():
+            return Response({"detail": "Negalima išmesti organizatorių."}, status=400)
+
+        # Check if target user is a participant
+        if not event.players.filter(id=target_user.id).exists():
+            return Response({"detail": "Naudotojas nėra renginio dalyvis."}, status=400)
+
+        # Remove from event
+        event.players.remove(target_user)
+
+        return Response({"message": "Žaidėjas išmestas iš renginio."})

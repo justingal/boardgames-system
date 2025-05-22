@@ -101,12 +101,33 @@
                 >
                   Eiti į renginį
                 </button>
+
+                <!-- Private: nematomas prisijungimo mygtukas -->
+                <p
+                  v-else-if="event.visibility === 'private'"
+                  class="text-sm text-gray-500 italic"
+                >
+                  Tik pakviestiesiems
+                </p>
+
+                <!-- Protected: prašymas prisijungti -->
+                <button
+                  v-else-if="event.visibility === 'protected'"
+                  @click="$emit('join', event.id)"
+                  class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 shadow-sm"
+                >
+                  Pateikti prašymą prisijungti
+                </button>
+
+                <!-- Public: normalus prisijungimas -->
                 <button
                   v-else
                   @click="$emit('join', event.id)"
                   class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-sm"
                 >
-                  {{ event.first_player_is_organizer && event.players_count === 0 ? 'Tapti organizatoriumi' : 'Prisijungti' }}
+                  {{ event.first_player_is_organizer && event.players_count === 0
+                  ? 'Tapti organizatoriumi'
+                  : 'Prisijungti' }}
                 </button>
               </div>
             </div>

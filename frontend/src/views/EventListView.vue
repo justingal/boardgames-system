@@ -467,15 +467,23 @@ const fetchEvents = async () => {
 // Prisijungimas prie renginio
 const joinEvent = async (eventId) => {
   try {
-    await axios.post(`/events/${eventId}/join/`, {}, {
-      headers: {Authorization: `Bearer ${token}`}
-    })
-    alert('Prisijungei prie renginio!')
-    fetchEvents()
+    const res = await axios.post(`/events/${eventId}/join/`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (res.status === 201) {
+      alert('🛡️ Prašymas prisijungti išsiųstas organizatoriui.');
+    } else {
+      alert('✅ Prisijungei prie renginio!');
+    }
+
+    fetchEvents();
   } catch (error) {
-    console.error('Nepavyko prisijungti prie renginio:', error)
+    console.error('Nepavyko prisijungti prie renginio:', error);
+    alert('❌ Klaida jungiantis prie renginio.');
   }
-}
+};
+
 
 onMounted(() => {
   fetchEvents()
