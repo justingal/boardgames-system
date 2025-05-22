@@ -7,7 +7,7 @@ from core.views.game_collection_viewset import GameCollectionViewSet
 from rest_framework.routers import DefaultRouter
 
 
-from core.views.organization import JoinOrganizationView, OrganizationMembersView, remove_member
+from core.views.organization import OrganizationMembersView, remove_member
 
 from .views import (
     RegisterView,
@@ -28,25 +28,20 @@ from .views.game_collection_bgg_import import AddGameFromSearchView
 from .views.game_collection_csv_import import GameCollectionCSVImportView
 from .views.game_collection_delete import RemoveGameFromCollectionView
 from .views.organization_views import UserOrganizationsView
+from .views.stats_view import StatsView
 from .views.user_profile_view import UserFullProfileView
+from .views.user_search import UserSearchView
 from .views.user_views import CurrentUserView
 
 urlpatterns = [
 
-    # 🔐 Autentifikacija
     path('register/', RegisterView.as_view(), name='register'),
-
-    # 🎲 Žaidimai
     path('games/', GameListView.as_view(), name='game-list'),
-
-    # 📚 Kolekcija
     path('collection/', UserCollectionView.as_view(), name='user-collection'),
     path('collection/add/', AddToCollectionView.as_view(), name='add-to-collection'),
-
-    # 🔍 Paieška iš BGG
+    path('users/search/', UserSearchView.as_view(), name="user-search"),
     path('bgg/search/', BGGSearchView.as_view(), name='bgg-search'),
 
-    path('organizations/<int:pk>/join/', JoinOrganizationView.as_view(), name='join-organization'),
     path('organizations/<int:pk>/members/', OrganizationMembersView.as_view(), name='organization-members'),
     path('organizations/<int:org_id>/members/<int:user_id>/remove/', remove_member, name='remove-member'),
     path('token/', CustomLoginView.as_view(), name='custom-token'),
@@ -71,6 +66,8 @@ urlpatterns = [
     path('organizations/<int:org_id>/grouped-events/', GroupedEventsView.as_view(), name='grouped-events'),
     path('events/grouped/', GroupedEventsView.as_view(), name='grouped-events'),
     path('events/grouped/<int:org_id>/', GroupedEventsView.as_view(), name='grouped-events-by-org'),
+    path('stats/', StatsView.as_view(), name='stats'),
+
     path('users/me/full/', UserFullProfileView.as_view(), name='user-full-profile'),
 
 

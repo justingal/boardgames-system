@@ -379,14 +379,24 @@ const fetchOrganizations = async () => {
 
 const joinOrganization = async (orgId) => {
   try {
-    await axios.post(`/organizations/${orgId}/join/`)
-    alert('Prisijungei prie organizacijos!')
+    const res = await axios.post(`/organizations/${orgId}/join/`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+
+    const detail = res.data?.detail || ''
+    if (detail.includes('Prašymas')) {
+      alert('🕓 Prašymas išsiųstas. Laukiama organizatoriaus patvirtinimo.')
+    } else {
+      alert('✅ Prisijungta prie organizacijos!')
+    }
+
     fetchOrganizations()
   } catch (error) {
     console.error('Nepavyko prisijungti:', error)
-    alert('Nepavyko prisijungti. Galbūt jau esi narys?')
+    alert(error.response?.data?.detail || 'Nepavyko prisijungti.')
   }
 }
+
 
 const deleteOrganization = async (orgId) => {
   if (!confirm('Ar tikrai nori ištrinti šią organizaciją?')) return

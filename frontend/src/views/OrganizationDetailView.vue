@@ -253,18 +253,130 @@
         <div class="bg-white rounded-xl shadow-md overflow-hidden mb-8">
           <div class="h-3 bg-gradient-to-r from-purple-500 to-indigo-600"></div>
           <div class="p-6">
-            <div class="flex items-center mb-6">
-              <div class="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center mr-3">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
+            <div class="flex items-center justify-between mb-6">
+              <div class="flex items-center">
+                <div class="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center mr-3">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                </div>
+                <h2 class="text-2xl font-bold text-purple-700">Nariai</h2>
+                <span class="ml-3 bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium">
+                  {{ members.length }} nariai
+                </span>
               </div>
-              <h2 class="text-2xl font-bold text-purple-700">Nariai</h2>
-              <span class="ml-3 bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium">
-                {{ members.length }} nariai
-              </span>
+
+              <!-- User invitation section - only visible to creator -->
+              <button
+                v-if="userIsCreator"
+                @click="showInviteModal = true"
+                class="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 shadow-sm transition flex items-center gap-2"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Kviesti narius
+              </button>
             </div>
 
+            <!-- User invitation modal -->
+            <div v-if="showInviteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                <div class="flex justify-between items-center mb-4">
+                  <h3 class="text-lg font-semibold text-gray-800">Kviesti narius</h3>
+                  <button
+                    @click="closeInviteModal"
+                    class="text-gray-400 hover:text-gray-600"
+                  >
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div class="mb-4">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Ieškoti naudotojo
+                  </label>
+                  <div class="relative">
+                    <input
+                      v-model="searchQuery"
+                      @input="searchUsers"
+                      type="text"
+                      placeholder="Įveskite vardą arba el. paštą..."
+                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                    <svg class="absolute right-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                </div>
+
+                <!-- Search results -->
+                <div v-if="searchResults.length > 0" class="max-h-60 overflow-y-auto">
+                  <h4 class="text-sm font-medium text-gray-700 mb-2">Paieškos rezultatai:</h4>
+                  <ul class="space-y-2">
+                    <li
+                      v-for="user in searchResults"
+                      :key="user.id"
+                      class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+                    >
+                      <div class="flex items-center">
+                        <div class="w-8 h-8 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-sm font-semibold mr-3">
+                          {{ user.username.charAt(0).toUpperCase() }}
+                        </div>
+                        <div>
+                          <p class="font-medium text-gray-800">{{ user.username }}</p>
+                          <p class="text-sm text-gray-500">{{ user.email }}</p>
+                        </div>
+                      </div>
+                      <button
+                        @click="inviteUser(user.id)"
+                        :disabled="invitingUsers.includes(user.id)"
+                        class="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:bg-gray-400 transition"
+                      >
+                        {{ invitingUsers.includes(user.id) ? 'Siunčiama...' : 'Kviesti' }}
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+
+                <div v-else-if="searchQuery && searchQuery.length >= 2" class="text-center py-4 text-gray-500">
+                  Naudotojų nerasta
+                </div>
+
+                <div v-if="!searchQuery || searchQuery.length < 2" class="text-center py-4 text-gray-400 text-sm">
+                  Įveskite mažiausiai 2 simbolius paieškai
+                </div>
+              </div>
+            </div>
+
+            <!-- Join requests section - only visible to creator -->
+            <div v-if="userIsCreator && joinRequests.length > 0" class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                <svg class="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                Laukiantys prašymai ({{ joinRequests.length }})
+              </h3>
+              <ul class="space-y-2">
+                <li
+                  v-for="req in joinRequests"
+                  :key="req.id"
+                  class="flex justify-between items-center bg-white p-3 rounded-lg border border-yellow-300"
+                >
+                  <span class="text-gray-800 font-medium">{{ req.user_email }}</span>
+                  <button
+                    @click="approveRequest(req.id)"
+                    class="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition"
+                  >
+                    Patvirtinti
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Members list -->
             <div v-if="members.length === 0" class="bg-gray-50 p-10 rounded-lg border border-gray-200 text-center">
               <div class="flex flex-col items-center">
                 <svg class="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -336,6 +448,16 @@ const token = localStorage.getItem('access')
 const organization = ref<any>(null)
 const members = ref<any[]>([])
 const user = ref<any>(null)
+const joinRequests = ref([])
+
+// UI state
+const showEditModal = ref(false)
+const showInviteModal = ref(false)
+
+// Search functionality
+const searchQuery = ref('')
+const searchResults = ref([])
+const invitingUsers = ref<number[]>([])
 
 // Hardcoded categories matching backend CATEGORY_CHOICES
 const categoryOptions = [
@@ -352,27 +474,113 @@ const getCategoryName = (categoryValue: string) => {
   return category ? category.name : categoryValue
 }
 
+const searchUsers = async () => {
+  if (searchQuery.value.length < 2) {
+    searchResults.value = []
+    return
+  }
+
+  try {
+    const res = await axios.get('/users/search/', {
+      params: { q: searchQuery.value },
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    // Filter out users who are already members
+    const memberIds = members.value.map(member => member.id)
+    searchResults.value = res.data.filter(user => !memberIds.includes(user.id))
+  } catch (error) {
+    console.error('Error searching users:', error)
+    searchResults.value = []
+  }
+}
+
+const inviteUser = async (userId: number) => {
+  if (invitingUsers.value.includes(userId)) return
+
+  invitingUsers.value.push(userId)
+
+  try {
+    await axios.post(`/organizations/${organization.value.id}/invite/`, {
+      user_id: userId
+    }, { headers: { Authorization: `Bearer ${token}` } })
+
+    alert('✅ Kvietimas sėkmingai išsiųstas!')
+
+    // Remove user from search results after successful invitation
+    searchResults.value = searchResults.value.filter(user => user.id !== userId)
+  } catch (error) {
+    console.error('Error inviting user:', error)
+    alert('❌ Nepavyko išsiųsti kvietimo. Bandykite dar kartą.')
+  } finally {
+    invitingUsers.value = invitingUsers.value.filter(id => id !== userId)
+  }
+}
+
+const closeInviteModal = () => {
+  showInviteModal.value = false
+  searchQuery.value = ''
+  searchResults.value = []
+  invitingUsers.value = []
+}
+
 const fetchOrganization = async () => {
-  const orgId = route.params.id
-  const response = await axios.get(`/organizations/${orgId}/`, {
-    headers: { Authorization: `Bearer ${token}` }
-  })
-  organization.value = response.data
+  try {
+    const orgId = route.params.id
+    const response = await axios.get(`/organizations/${orgId}/`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    organization.value = response.data
+  } catch (error) {
+    console.error('Error fetching organization:', error)
+  }
 }
 
 const fetchMembers = async () => {
-  const orgId = route.params.id
-  const response = await axios.get(`/organizations/${orgId}/members/`, {
-    headers: { Authorization: `Bearer ${token}` }
-  })
-  members.value = response.data
+  try {
+    const orgId = route.params.id
+    const response = await axios.get(`/organizations/${orgId}/members/`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    members.value = response.data
+  } catch (error) {
+    console.error('Error fetching members:', error)
+  }
 }
 
 const fetchUser = async () => {
-  const res = await axios.get('/users/me/', {
-    headers: { Authorization: `Bearer ${token}` }
-  })
-  user.value = res.data
+  try {
+    const res = await axios.get('/users/me/', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    user.value = res.data
+  } catch (error) {
+    console.error('Error fetching user:', error)
+  }
+}
+
+const fetchJoinRequests = async () => {
+  try {
+    const res = await axios.get(`/organizations/${route.params.id}/join_requests/`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    joinRequests.value = res.data
+  } catch (err) {
+    console.error('Nepavyko gauti prašymų:', err)
+  }
+}
+
+const approveRequest = async (requestId) => {
+  try {
+    await axios.post(`/organizations/${route.params.id}/approve_request/`, { request_id: requestId }, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    alert('✅ Prašymas patvirtintas.')
+    fetchJoinRequests()
+    fetchMembers()
+  } catch (err) {
+    console.error('Klaida patvirtinant:', err)
+    alert('❌ Nepavyko patvirtinti prašymo.')
+  }
 }
 
 const userIsCreator = computed(() => {
@@ -380,18 +588,30 @@ const userIsCreator = computed(() => {
 })
 
 const joinEvent = async (eventId: number) => {
-  await axios.post(`/events/${eventId}/join/`, {}, {
-    headers: { Authorization: `Bearer ${token}` }
-  })
-  fetchOrganization()
+  try {
+    await axios.post(`/events/${eventId}/join/`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    fetchOrganization()
+  } catch (error) {
+    console.error('Error joining event:', error)
+    alert('❌ Nepavyko prisijungti prie renginio.')
+  }
 }
 
 const deleteEvent = async (eventId: number) => {
   if (!confirm('Ar tikrai nori ištrinti šį renginį?')) return
-  await axios.delete(`/events/${eventId}/`, {
-    headers: { Authorization: `Bearer ${token}` }
-  })
-  fetchOrganization()
+
+  try {
+    await axios.delete(`/events/${eventId}/`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    fetchOrganization()
+    alert('✅ Renginys sėkmingai ištrintas.')
+  } catch (error) {
+    console.error('Error deleting event:', error)
+    alert('❌ Nepavyko ištrinti renginio.')
+  }
 }
 
 const goToEvent = (eventId: number) => {
@@ -414,14 +634,21 @@ const canKick = (memberId: number) => {
 }
 
 const kickMember = async (memberId: number) => {
-  const orgId = route.params.id
-  await axios.delete(`/organizations/${orgId}/remove-member/${memberId}/`, {
-    headers: { Authorization: `Bearer ${token}` }
-  })
-  fetchMembers()
+  if (!confirm('Ar tikrai norite išmesti šį narį iš organizacijos?')) return
+
+  try {
+    const orgId = route.params.id
+    await axios.delete(`/organizations/${orgId}/remove-member/${memberId}/`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    fetchMembers()
+    alert('✅ Narys sėkmingai išmestas iš organizacijos.')
+  } catch (error) {
+    console.error('Error kicking member:', error)
+    alert('❌ Nepavyko išmesti nario.')
+  }
 }
 
-const showEditModal = ref(false)
 const handleUpdated = async () => {
   await fetchOrganization()
   showEditModal.value = false
@@ -431,6 +658,7 @@ onMounted(() => {
   fetchOrganization()
   fetchMembers()
   fetchUser()
+  fetchJoinRequests()
 })
 
 const tableSizeLabels: Record<string, string> = {

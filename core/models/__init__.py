@@ -6,3 +6,4 @@ from .user_profile import UserProfile
 from .game_collection import GameCollection
 from .event_available_game import EventAvailableGame
 from .user_game_vote import UserGameVote
+from .visibility import JoinRequest, Invite
